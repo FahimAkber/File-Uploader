@@ -3,9 +3,11 @@ package com.example.fileuploader.controller;
 import com.example.fileuploader.model.JobInfo;
 import com.example.fileuploader.model.RequestJob;
 import com.example.fileuploader.model.SchedulerJobDTO;
+import com.example.fileuploader.model.TestThread;
 import com.example.fileuploader.service.QuartzJobInfoService;
 import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.quartzscheduler.QuartzSchedulerService;
+import com.example.fileuploader.transferfile.FileTransferService;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +18,12 @@ public class FileTransferController {
 
     private final QuartzJobInfoService quartzJobInfoService;
     private final QuartzSchedulerService quartzSchedulerService;
+    private final FileTransferService fileTransferService;
 
-    public FileTransferController(QuartzJobInfoService quartzJobInfoService, QuartzSchedulerService quartzSchedulerService) {
+    public FileTransferController(QuartzJobInfoService quartzJobInfoService, QuartzSchedulerService quartzSchedulerService, FileTransferService fileTransferService) {
         this.quartzJobInfoService = quartzJobInfoService;
         this.quartzSchedulerService = quartzSchedulerService;
+        this.fileTransferService = fileTransferService;
     }
 
     @PostMapping("schedule-file")
@@ -113,6 +117,21 @@ public class FileTransferController {
         }catch (FileUploaderException exception){
             return new ResponseEntity<>(exception.getErrorMessage(), exception.getErrorCode());
         }
+    }
+
+    @GetMapping("test-file-transfer")
+    public ResponseEntity<Object> transferFile(){
+       fileTransferService.getTestFiles();
+
+//        Thread thread1 = new Thread(new TestThread());
+//        Thread thread2 = new Thread(new TestThread());
+//        Thread thread3 = new Thread(new TestThread());
+//
+//        thread1.start();
+//        thread2.start();
+//        thread3.start();
+
+        return ResponseEntity.ok("Tested");
     }
 }
 

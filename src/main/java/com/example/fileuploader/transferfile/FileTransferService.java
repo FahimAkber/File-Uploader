@@ -9,6 +9,7 @@ public interface FileTransferService {
     Session createSession(String remoteUser, String remotePassword, String remoteHost, int remotePort);
     ChannelSftp createChannelSftp(Session session);
     void getFiles(JobInfo jobInfo);
+    void getTestFiles();
     void setFiles(JobInfo jobInfo);
     void destroyConnection(Session session, ChannelSftp channelSftp);
 }
