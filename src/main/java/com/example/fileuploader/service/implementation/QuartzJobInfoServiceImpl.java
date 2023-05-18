@@ -1,66 +1,100 @@
 package com.example.fileuploader.service.implementation;
 
+import com.example.fileuploader.model.Configuration;
+import com.example.fileuploader.model.PathConfiguration;
 import com.example.fileuploader.model.entities.QuartzJobInfo;
+import com.example.fileuploader.model.response.JobInfoResponse;
+import com.example.fileuploader.quartzscheduler.QuartzSchedulerService;
 import com.example.fileuploader.service.QuartzJobInfoService;
 import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.model.JobInfo;
 import com.example.fileuploader.repository.QuartzJobInfoRepository;
+import com.example.fileuploader.util.Util;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 
 @Service
 public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
     private final QuartzJobInfoRepository quartzJobInfoRepository;
     private final ModelMapper modelMapper;
+    private final Configuration configuration;
+    private final QuartzSchedulerService quartzSchedulerService;
 
-    public QuartzJobInfoServiceImpl(QuartzJobInfoRepository quartzJobInfoRepository, ModelMapper modelMapper){
+    public QuartzJobInfoServiceImpl(QuartzJobInfoRepository quartzJobInfoRepository, ModelMapper modelMapper, Configuration configuration, QuartzSchedulerService quartzSchedulerService){
         this.quartzJobInfoRepository = quartzJobInfoRepository;
         this.modelMapper = modelMapper;
+        this.configuration = configuration;
+        this.quartzSchedulerService = quartzSchedulerService;
     }
 
     @Override
-    public void saveQuartzJob(JobInfo jobInfo) {
-        if(jobInfo.getJobType() == null || jobInfo.getJobType().isEmpty()){
-            throw new FileUploaderException("Job type cannot be null or empty String", HttpStatus.NOT_FOUND);
+    public JobInfoResponse saveQuartzJob(JobInfo jobInfo) {
+        try{
+            Util.checkRequiredField("operationType", jobInfo.getOperationType());
+            Util.checkRequiredField("fileExtension", jobInfo.getFileExtension());
+            Util.checkRequiredField("remoteHost", jobInfo.getRemoteHost());
+            Util.checkRequiredField("remoteUser", jobInfo.getRemoteUser());
+            Util.checkRequiredFile("multipartFile", jobInfo.getMultipartFile());
+
+            String fileName = uploadFileToLocal(jobInfo.getMultipartFile());
+            String groupId = generateGroupId(jobInfo.getOperationType(), jobInfo.getRemoteHost());
+            QuartzJobInfo quartzJobInfo = null;
+
+            for (PathConfiguration path : jobInfo.getPaths()){
+                quartzJobInfo = new QuartzJobInfo();
+                BeanUtils.copyProperties(jobInfo, quartzJobInfo);
+                quartzJobInfo.setLocalPath(path.getLocalPath());
+                quartzJobInfo.setRemotePath(path.getRemotePath());
+                quartzJobInfo.setFileName(fileName);
+                quartzJobInfo.setCreatedBy(System.getProperty("user.home"));
+                quartzJobInfo.setExecutedAt(Calendar.getInstance().getTime());
+                quartzJobInfo.setJobKey(quartzSchedulerService.saveJob(quartzJobInfo));
+                quartzJobInfo.setJobGroup(groupId);
+                quartzJobInfoRepository.save(quartzJobInfo);
+            }
+
+
+            //TODO: NEED CHECK IF THE JOB GROUP ALREADY EXIST
+
+            return new JobInfoResponse(groupId);
+
+        }catch (Exception exception){
+            throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
-        if(jobInfo.getOperationType() == null || jobInfo.getOperationType().isEmpty()){
-            throw new FileUploaderException("Operation type cannot be null or empty String", HttpStatus.NOT_FOUND);
+    }
+
+    private String generateGroupId(String operationType, String remoteHost){
+        return new StringBuilder(operationType).append(" from ").append(remoteHost).toString();
+    }
+
+    private String generateFileName(String fileName) {
+        String extension = fileName.substring(fileName.lastIndexOf('.'));
+        String uniqueId = UUID.randomUUID().toString();
+        return uniqueId + extension;
+    }
+
+    private String uploadFileToLocal(MultipartFile multipartFile) throws Exception {
+
+        String fileName = generateFileName(multipartFile.getOriginalFilename());;
+        Path path = Paths.get(configuration.getFileStoreLocation(), fileName);
+
+        if(!Files.exists(path.getParent())){
+            Files.createDirectory(path.getParent());
         }
-        if(jobInfo.getLocalExtension() == null || jobInfo.getLocalExtension().isEmpty()){
-            throw new FileUploaderException("Local extension cannot be null or empty String", HttpStatus.NOT_FOUND);
-        }
-        if(jobInfo.getRemoteExtension() == null || jobInfo.getRemoteExtension().isEmpty()){
-            throw new FileUploaderException("Remote extension cannot be null or empty String", HttpStatus.NOT_FOUND);
-        }
-        if(jobInfo.getProjectName() == null || jobInfo.getProjectName().isEmpty()){
-            throw new FileUploaderException("Project name cannot be null or empty String", HttpStatus.NOT_FOUND);
-        }
-        if(jobInfo.getRemoteHost() == null || jobInfo.getRemoteHost().isEmpty()){
-            throw new FileUploaderException("Remote host cannot be null or empty String", HttpStatus.NOT_FOUND);
-        }
-        if(jobInfo.getRemoteUser() == null || jobInfo.getRemoteUser().isEmpty()){
-            throw new FileUploaderException("Remote user cannot be null or empty String", HttpStatus.NOT_FOUND);
-        }
-        if(jobInfo.getRemotePassword() == null || jobInfo.getRemotePassword().isEmpty()){
-            throw new FileUploaderException("Remote password cannot be null or empty String", HttpStatus.NOT_FOUND);
-        }
-        if(jobInfo.getRemotePath() == null || jobInfo.getRemotePath().isEmpty()){
-            throw new FileUploaderException("Remote path cannot be null or empty String", HttpStatus.NOT_FOUND);
-        }
-        if(jobInfo.getLocalPath() == null || jobInfo.getLocalPath().isEmpty()){
-            throw new FileUploaderException("Local path cannot be null or empty String", HttpStatus.NOT_FOUND);
-        }
-        QuartzJobInfo quartzJobInfo = new QuartzJobInfo(jobInfo.getJobType(), jobInfo.getOperationType(), jobInfo.getLocalExtension(),
-                                        jobInfo.getRemoteExtension(), jobInfo.getProjectName(), jobInfo.getRemoteHost(), jobInfo.getRemotePort(),
-                                        jobInfo.getRemoteUser(), jobInfo.getRemotePassword(), jobInfo.getRemotePath(), jobInfo.getLocalPath());
-        quartzJobInfo.setCreatedBy(System.getProperty("user.home"));
-        quartzJobInfo.setExecutedAt(Calendar.getInstance().getTime());
-        quartzJobInfoRepository.save(quartzJobInfo);
+
+        multipartFile.transferTo(path);
+        return fileName;
     }
 
     @Override

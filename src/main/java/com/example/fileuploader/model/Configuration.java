@@ -1,9 +1,15 @@
 package com.example.fileuploader.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Configuration {
 
     @Value("${jsch.configuration.key}")
@@ -12,28 +18,7 @@ public class Configuration {
     private String configurationValue;
     @Value("${channel.type}")
     private String channelType;
+    @Value("${file.location}")
+    private String fileStoreLocation;
 
-    public String getConfigurationKey() {
-        return configurationKey;
-    }
-
-    public void setConfigurationKey(String configurationKey) {
-        this.configurationKey = configurationKey;
-    }
-
-    public String getConfigurationValue() {
-        return configurationValue;
-    }
-
-    public void setConfigurationValue(String configurationValue) {
-        this.configurationValue = configurationValue;
-    }
-
-    public String getChannelType() {
-        return channelType;
-    }
-
-    public void setChannelType(String channelType) {
-        this.channelType = channelType;
-    }
 }

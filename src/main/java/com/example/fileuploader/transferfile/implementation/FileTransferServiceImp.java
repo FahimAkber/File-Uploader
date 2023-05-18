@@ -125,43 +125,43 @@ public class FileTransferServiceImp implements FileTransferService {
 
     @Override
     public void setFiles(JobInfo jobInfo) {
-        if(!jobQueue.contains(jobInfo.getJobType())){
-            jobQueue.add(jobInfo.getJobType());
-            Session session = null;
-            ChannelSftp channelSftp = null;
-
-            try {
-                File localFile = createDirIfNotExist(jobInfo.getLocalPath(), jobInfo.getProjectName(), jobInfo.getLocalExtension());
-                session = createSession(jobInfo.getRemoteUser(), jobInfo.getRemotePassword(), jobInfo.getRemoteHost(), jobInfo.getRemotePort());
-                channelSftp = createChannelSftp(session);
-                File[] files = Objects.requireNonNull(localFile.listFiles());
-                Partition<File> partition = Partition.getPartitionInstance(Arrays.asList(files), 500);
-                for(int i = 0; i < partition.size(); i++){
-                    List<File> objects = partition.get(i);
-                    List<String> fileNames = objects.stream().map(File::getName).collect(Collectors.toList());
-                    List<String> checkedFiles = fileService.getCheckedFiles(fileNames);
-                    for(File file : objects){
-                        if(!checkedFiles.contains(file.getName())){
-                            channelSftp.put(file.getAbsolutePath(), jobInfo.getRemotePath().concat("/").concat(jobInfo.getProjectName()).concat("/").concat(jobInfo.getRemoteExtension()));
-                            fileService.save(new UploadedFile(file.getName()));
-                            LoggerFactory.getLogger(LOGGER_NAME).info("Successfully uploaded outward file: {}", file.getName());
-                        }else{
-                            LoggerFactory.getLogger(LOGGER_NAME).info("Already uploaded outward file: {}", file.getName());
-                        }
-                    }
-                }
-            } catch ( SftpException e) {
-                throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-            } catch (FileUploaderException exception){
-                throw exception;
-            } finally {
-                jobQueue.remove(jobInfo.getJobType());
-                destroyConnection(session, channelSftp);
-                LoggerFactory.getLogger("End Now: " + Calendar.getInstance().getTime());
-            }
-        }else{
-            LoggerFactory.getLogger(LOGGER_NAME).info("Previous Job: {} is running.", jobInfo.getJobType());
-        }
+//        if(!jobQueue.contains(jobInfo.getJobType())){
+//            jobQueue.add(jobInfo.getJobType());
+//            Session session = null;
+//            ChannelSftp channelSftp = null;
+//
+//            try {
+//                File localFile = createDirIfNotExist(jobInfo.getLocalPath(), jobInfo.getFileExtension());
+//                session = createSession(jobInfo.getRemoteUser(), jobInfo.getRemotePassword(), jobInfo.getRemoteHost(), jobInfo.getRemotePort());
+//                channelSftp = createChannelSftp(session);
+//                File[] files = Objects.requireNonNull(localFile.listFiles());
+//                Partition<File> partition = Partition.getPartitionInstance(Arrays.asList(files), 500);
+//                for(int i = 0; i < partition.size(); i++){
+//                    List<File> objects = partition.get(i);
+//                    List<String> fileNames = objects.stream().map(File::getName).collect(Collectors.toList());
+//                    List<String> checkedFiles = fileService.getCheckedFiles(fileNames);
+//                    for(File file : objects){
+//                        if(!checkedFiles.contains(file.getName())){
+//                            channelSftp.put(file.getAbsolutePath(), jobInfo.getRemotePath().concat("/").concat(jobInfo.getRemoteExtension()));
+//                            fileService.save(new UploadedFile(file.getName()));
+//                            LoggerFactory.getLogger(LOGGER_NAME).info("Successfully uploaded outward file: {}", file.getName());
+//                        }else{
+//                            LoggerFactory.getLogger(LOGGER_NAME).info("Already uploaded outward file: {}", file.getName());
+//                        }
+//                    }
+//                }
+//            } catch ( SftpException e) {
+//                throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+//            } catch (FileUploaderException exception){
+//                throw exception;
+//            } finally {
+//                jobQueue.remove(jobInfo.getJobType());
+//                destroyConnection(session, channelSftp);
+//                LoggerFactory.getLogger("End Now: " + Calendar.getInstance().getTime());
+//            }
+//        }else{
+//            LoggerFactory.getLogger(LOGGER_NAME).info("Previous Job: {} is running.", jobInfo.getJobType());
+//        }
     }
 
     @Override
@@ -185,8 +185,8 @@ public class FileTransferServiceImp implements FileTransferService {
 
         LoggerFactory.getLogger(LOGGER_NAME).info("Successfully imported inward File: {}, start at: {}, end at: {}, total time: {}", entry.getFilename(), startTime.toString(), endTime.toString(), duration.getSeconds());
     }
-    private File createDirIfNotExist(String rootPath, String projectName, String extension){
-        File file = new File(rootPath.concat("/").concat(projectName).concat("/").concat(extension).concat("/").concat(getCurrentDate()));
+    private File createDirIfNotExist(String rootPath, String extension){
+        File file = new File(rootPath.concat("/").concat(extension).concat("/").concat(getCurrentDate()));
         if(!file.exists()){
             file.mkdirs();
         }

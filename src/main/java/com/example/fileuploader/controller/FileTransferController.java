@@ -1,17 +1,21 @@
 package com.example.fileuploader.controller;
 
 import com.example.fileuploader.model.JobInfo;
-import com.example.fileuploader.model.RequestJob;
-import com.example.fileuploader.model.SchedulerJobDTO;
-import com.example.fileuploader.model.TestThread;
+import com.example.fileuploader.model.JobRequest;
+import com.example.fileuploader.model.SchedulerRequest;
 import com.example.fileuploader.service.QuartzJobInfoService;
 import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.quartzscheduler.QuartzSchedulerService;
 import com.example.fileuploader.transferfile.FileTransferService;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 
 @RestController
 public class FileTransferController {
@@ -27,12 +31,11 @@ public class FileTransferController {
     }
 
     @PostMapping("schedule-file")
-    public ResponseEntity<Object> schedulingFile(@RequestBody SchedulerJobDTO job){
+    public ResponseEntity<Object> schedulingFile(@RequestBody SchedulerRequest schedulerRequest){
         try{
-            JobKey key = new JobKey(job.getJobKey());
+            JobKey key = new JobKey(schedulerRequest.getJobKey());
             JobDetail jobDetail = quartzSchedulerService.getJobByKey(key);
-            job.getRequestTrigger().setJob(jobDetail);
-            quartzSchedulerService.saveTrigger(job.getRequestTrigger());
+            quartzSchedulerService.saveTrigger(jobDetail, schedulerRequest);
 
             return ResponseEntity.ok("Successfully schedule the job");
         }catch (FileUploaderException exception){
@@ -40,25 +43,21 @@ public class FileTransferController {
         }
     }
 
-    @PostMapping("save-job-info")
-    public ResponseEntity<Object> saveJobInfo(@RequestBody JobInfo jobInfo){
-        try{
-            quartzJobInfoService.saveQuartzJob(jobInfo);
-            return ResponseEntity.ok("Job info save successfully.");
-        }catch (FileUploaderException exception){
-            return new ResponseEntity<>(exception.getErrorMessage(), exception.getErrorCode());
-        }
+    @PostMapping(value = "save-job-info", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ResponseEntity<Object> saveJobInfo(@RequestPart("jobInfo") JobInfo jobInfo, @RequestPart("multipartFile") MultipartFile multipartFile){
+        jobInfo.setMultipartFile(multipartFile);
+        return ResponseEntity.ok(quartzJobInfoService.saveQuartzJob(jobInfo));
     }
-
-    @PostMapping("save-job")
-    public ResponseEntity<Object> saveJob(@RequestBody RequestJob requestJob){
-        try{
-            quartzSchedulerService.saveJob(requestJob);
-            return ResponseEntity.ok("Job save successfully");
-        }catch(FileUploaderException exception){
-            return new ResponseEntity<>(exception.getErrorMessage(), exception.getErrorCode());
-        }
-    }
+//
+//    @PostMapping("save-job")
+//    public ResponseEntity<Object> saveJob(@RequestBody JobRequest jobRequest){
+//        try{
+//            quartzSchedulerService.saveJob(jobRequest);
+//            return ResponseEntity.ok("Job save successfully");
+//        }catch(FileUploaderException exception){
+//            return new ResponseEntity<>(exception.getErrorMessage(), exception.getErrorCode());
+//        }
+//    }
 
 
     @GetMapping("get-job/{jobKey}")
@@ -110,9 +109,9 @@ public class FileTransferController {
     }
 
     @PostMapping("update-job")
-    public ResponseEntity<Object> updateJob(@RequestBody RequestJob requestJob){
+    public ResponseEntity<Object> updateJob(@RequestBody JobRequest jobRequest){
         try{
-            quartzSchedulerService.updateJob(requestJob);
+            quartzSchedulerService.updateJob(jobRequest);
             return ResponseEntity.ok("Job updated successfully.");
         }catch (FileUploaderException exception){
             return new ResponseEntity<>(exception.getErrorMessage(), exception.getErrorCode());
