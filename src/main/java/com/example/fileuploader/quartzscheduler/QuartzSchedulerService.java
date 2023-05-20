@@ -7,10 +7,12 @@ import com.example.fileuploader.model.entities.QuartzJobInfo;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
 
+import java.util.Date;
+
 
 public interface QuartzSchedulerService {
     String saveJob(QuartzJobInfo jobInfo) throws Exception;
-    void saveTrigger(JobDetail jobDetail, SchedulerRequest schedulerRequest);
+    void saveTrigger(JobDetail jobDetail, int totalInterval, int frequency, Date startAt);
     JobDetail getJobByKey(JobKey jobKey);
     void updateJob(JobRequest jobRequest);
     void cancelTrigger(JobKey jobKey);

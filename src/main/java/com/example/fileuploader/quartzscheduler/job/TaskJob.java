@@ -1,6 +1,7 @@
 package com.example.fileuploader.quartzscheduler.job;
 
 import com.example.fileuploader.exceptions.FileUploaderException;
+import com.example.fileuploader.model.entities.QuartzJobInfo;
 import com.example.fileuploader.transferfile.FileTransferService;
 import com.example.fileuploader.model.JobInfo;
 import com.example.fileuploader.model.OperationType;
@@ -20,10 +21,10 @@ public class TaskJob implements Job {
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException{
-        JobDataMap map = jobExecutionContext.getMergedJobDataMap();
-        JobInfo jobInfo = (JobInfo) map.get("jobInfo");
-
         try{
+            JobDataMap map = jobExecutionContext.getMergedJobDataMap();
+            QuartzJobInfo jobInfo = (QuartzJobInfo) map.get("jobInfo");
+
             if(jobInfo.getOperationType().equals(String.valueOf(OperationType.EXPORT))){
                 fileTransferService.setFiles(jobInfo);
             }else{
@@ -31,6 +32,10 @@ public class TaskJob implements Job {
             }
         }catch (FileUploaderException exception){
             LoggerFactory.getLogger("File Uploader").info(exception.getErrorMessage());
+        }catch (Exception exception){
+            LoggerFactory.getLogger("File Uploader").info(exception.getMessage());
         }
     }
 }
+
+

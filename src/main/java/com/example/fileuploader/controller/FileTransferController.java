@@ -3,6 +3,7 @@ package com.example.fileuploader.controller;
 import com.example.fileuploader.model.JobInfo;
 import com.example.fileuploader.model.JobRequest;
 import com.example.fileuploader.model.SchedulerRequest;
+import com.example.fileuploader.model.entities.QuartzJobInfo;
 import com.example.fileuploader.service.QuartzJobInfoService;
 import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.quartzscheduler.QuartzSchedulerService;
@@ -16,6 +17,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.Date;
+import java.util.List;
 
 @RestController
 public class FileTransferController {
@@ -32,15 +35,19 @@ public class FileTransferController {
 
     @PostMapping("schedule-file")
     public ResponseEntity<Object> schedulingFile(@RequestBody SchedulerRequest schedulerRequest){
-        try{
-            JobKey key = new JobKey(schedulerRequest.getJobKey());
-            JobDetail jobDetail = quartzSchedulerService.getJobByKey(key);
-            quartzSchedulerService.saveTrigger(jobDetail, schedulerRequest);
+        List<QuartzJobInfo> jobs = quartzJobInfoService.findJobInfoByGroupId(schedulerRequest.getJobGroupId());
+        int totalInterval = schedulerRequest.getTotalInterval();
+        int frequency = schedulerRequest.getFrequency();
+        Date startAt = schedulerRequest.getStartAt();
 
-            return ResponseEntity.ok("Successfully schedule the job");
-        }catch (FileUploaderException exception){
-            return new ResponseEntity<>(exception.getErrorMessage(), exception.getErrorCode());
+        for(QuartzJobInfo job : jobs){
+            JobKey key = new JobKey(job.getJobKey());
+            JobDetail jobDetail = quartzSchedulerService.getJobByKey(key);
+            quartzSchedulerService.saveTrigger(jobDetail, totalInterval, frequency, startAt);
         }
+
+
+        return ResponseEntity.ok("Successfully schedule the job");
     }
 
     @PostMapping(value = "save-job-info", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
@@ -48,17 +55,11 @@ public class FileTransferController {
         jobInfo.setMultipartFile(multipartFile);
         return ResponseEntity.ok(quartzJobInfoService.saveQuartzJob(jobInfo));
     }
-//
-//    @PostMapping("save-job")
-//    public ResponseEntity<Object> saveJob(@RequestBody JobRequest jobRequest){
-//        try{
-//            quartzSchedulerService.saveJob(jobRequest);
-//            return ResponseEntity.ok("Job save successfully");
-//        }catch(FileUploaderException exception){
-//            return new ResponseEntity<>(exception.getErrorMessage(), exception.getErrorCode());
-//        }
-//    }
 
+    @GetMapping(value = "get-job-info")
+    public ResponseEntity<Object> getJobInfo(){
+        return ResponseEntity.ok(quartzJobInfoService.getQuartzJobInfos());
+    }
 
     @GetMapping("get-job/{jobKey}")
     public ResponseEntity<Object> getJob(@PathVariable String jobKey){

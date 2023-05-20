@@ -2,6 +2,7 @@ package com.example.fileuploader.transferfile.implementation;
 
 import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.model.FileThread;
+import com.example.fileuploader.model.entities.QuartzJobInfo;
 import com.example.fileuploader.model.entities.UploadedFile;
 import com.example.fileuploader.service.UploadedFileService;
 import com.example.fileuploader.transferfile.FileTransferService;
@@ -15,10 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -42,10 +39,11 @@ public class FileTransferServiceImp implements FileTransferService {
     }
 
 
-    public Session createSession(String remoteUser, String remoteHost, int remotePort) {
+    @Override
+    public Session createSession(String remoteUser, String remoteHost, int remotePort, String fileName) {
         Session session = null;
         try {
-            jSch.addIdentity("D:/mfs-key.pem");
+            jSch.addIdentity(fileName);
             session = jSch.getSession(remoteUser, remoteHost, remotePort);
             session.setConfig("StrictHostKeyChecking", "no");
             session.setConfig("compression.s2c", "zlib,none");
@@ -65,11 +63,6 @@ public class FileTransferServiceImp implements FileTransferService {
     }
 
     @Override
-    public Session createSession(String remoteUser, String remotePassword, String remoteHost, int remotePort) {
-        return null;
-    }
-
-    @Override
     public ChannelSftp createChannelSftp(Session session) {
         ChannelSftp channelSftp = null;
         try {
@@ -81,50 +74,88 @@ public class FileTransferServiceImp implements FileTransferService {
         return channelSftp;
     }
     @Override
-    public void getFiles(JobInfo jobInfo){
+    public void getFiles(QuartzJobInfo jobInfo){
+        if(!jobQueue.contains(jobInfo.getJobKey())){
+            jobQueue.add(jobInfo.getJobKey());
+            Session session = null;
+            ChannelSftp channelSftp = null;
 
-    }
+            try {
+                File localFile = createDirIfNotExist(jobInfo.getLocalPath());
+                session = createSession(jobInfo.getRemoteUser(), jobInfo.getRemoteHost(), jobInfo.getRemotePort(), jobInfo.getFileName());
+                channelSftp = createChannelSftp(session);
+                String concatLocalPath = localFile.getPath();
+                channelSftp.cd(jobInfo.getRemotePath());
+                Vector list = channelSftp.ls(jobInfo.getRemotePath().concat("/*.bin"));
 
-    @Override
-    public void getTestFiles() {
-        Session session = null;
-        ChannelSftp channelSftp = null;
+                Partition<ChannelSftp.LsEntry> partition = Partition.getPartitionInstance(list, 500);
+                for (List<ChannelSftp.LsEntry> objects : partition) {
+                    List<String> fileNames = objects.stream().map(ChannelSftp.LsEntry::getFilename).collect(Collectors.toList());
+                    List<String> checkedFiles = fileService.getCheckedFiles(fileNames);
 
-        try {
-            File localFile = new File("D:/Bin Files/");
-            if(!localFile.exists()){
-                localFile.mkdirs();
+                    for(ChannelSftp.LsEntry entry : objects){
+                        if(!checkedFiles.contains(entry.getFilename())){
+                            uploadFileToLocalDestination(entry, concatLocalPath, channelSftp);
+                        }else{
+                            LoggerFactory.getLogger(LOGGER_NAME).info("Already imported Inward File: {}", entry.getFilename());
+                        }
+                    }
+                }
+            } catch ( SftpException | NullPointerException e) {
+                throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            } catch (FileUploaderException exception){
+                throw exception;
+            } finally {
+                jobQueue.remove(jobInfo.getJobKey());
+                destroyConnection(session, channelSftp);
             }
-            session = createSession("root", "103.36.101.99", 22);
-            channelSftp = createChannelSftp(session);
-            String concatRemotePath = "/files/";
-            String concatLocalPath = localFile.getPath();
-            channelSftp.cd(concatRemotePath);
-            Vector list = channelSftp.ls("*.bin");
-
-            Partition<ChannelSftp.LsEntry> partition = Partition.getPartitionInstance(list, 500);
-           destroyConnection(session, channelSftp);
-
-            for (List<ChannelSftp.LsEntry> objects : partition) {
-                FileThread fileThread = new FileThread(createSession("root", "103.36.101.99", 22), objects, concatLocalPath, concatRemotePath);
-                Thread thread = new Thread(fileThread);
-                thread.start();
-//                for(ChannelSftp.LsEntry entry : objects){
-//                    uploadFileToLocalDestination(entry, concatLocalPath, channelSftp);
-//                }
-
-            }
-        } catch ( SftpException | NullPointerException e) {
-            throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        } catch (FileUploaderException exception){
-            throw exception;
-        } finally {
-            destroyConnection(session, channelSftp);
+        }else{
+            LoggerFactory.getLogger(LOGGER_NAME).info("Previous job: {} is running.", jobInfo.getJobKey());
         }
     }
 
     @Override
-    public void setFiles(JobInfo jobInfo) {
+    public void getTestFiles() {
+//        Session session = null;
+//        ChannelSftp channelSftp = null;
+//
+//        try {
+//            File localFile = new File("D:/Bin Files/");
+//            if(!localFile.exists()){
+//                localFile.mkdirs();
+//            }
+
+
+//            session = createSession("root", "103.36.101.99", 22, "D:/pem-key");
+//            channelSftp = createChannelSftp(session);
+//            String concatRemotePath = "/files/";
+//            String concatLocalPath = localFile.getPath();
+//            channelSftp.cd(concatRemotePath);
+//            Vector list = channelSftp.ls("*.bin");
+//
+//            Partition<ChannelSftp.LsEntry> partition = Partition.getPartitionInstance(list, 500);
+//           destroyConnection(session, channelSftp);
+//
+//            for (List<ChannelSftp.LsEntry> objects : partition) {
+//                FileThread fileThread = new FileThread(createSession("root", "103.36.101.99", 22), objects, concatLocalPath, concatRemotePath);
+//                Thread thread = new Thread(fileThread);
+//                thread.start();
+////                for(ChannelSftp.LsEntry entry : objects){
+////                    uploadFileToLocalDestination(entry, concatLocalPath, channelSftp);
+////                }
+//
+//            }
+//        } catch ( SftpException | NullPointerException e) {
+//            throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+//        } catch (FileUploaderException exception){
+//            throw exception;
+//        } finally {
+//            destroyConnection(session, channelSftp);
+//        }
+    }
+
+    @Override
+    public void setFiles(QuartzJobInfo jobInfo) {
 //        if(!jobQueue.contains(jobInfo.getJobType())){
 //            jobQueue.add(jobInfo.getJobType());
 //            Session session = null;
@@ -185,8 +216,8 @@ public class FileTransferServiceImp implements FileTransferService {
 
         LoggerFactory.getLogger(LOGGER_NAME).info("Successfully imported inward File: {}, start at: {}, end at: {}, total time: {}", entry.getFilename(), startTime.toString(), endTime.toString(), duration.getSeconds());
     }
-    private File createDirIfNotExist(String rootPath, String extension){
-        File file = new File(rootPath.concat("/").concat(extension).concat("/").concat(getCurrentDate()));
+    private File createDirIfNotExist(String rootPath){
+        File file = new File(rootPath.concat("/").concat(getCurrentDate()));
         if(!file.exists()){
             file.mkdirs();
         }

@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
@@ -47,7 +48,7 @@ public class QuartzSchedulerServiceImpl implements QuartzSchedulerService {
         map.put("jobInfo", jobInfo);
 
         return JobBuilder.newJob(TaskJob.class)
-                .withIdentity(buildIdentity(jobInfo.getRemoteHost(), jobInfo.getOperationType(), jobInfo.getRemotePath(), jobInfo.getLocalPath()))
+                .withIdentity(jobInfo.getJobKey())
                 .withDescription(buildDescription(jobInfo.getOperationType()))
                 .usingJobData(map)
                 .storeDurably()
@@ -58,54 +59,48 @@ public class QuartzSchedulerServiceImpl implements QuartzSchedulerService {
         return operationType.equals(OperationType.IMPORT.toString()) ? "Import file from remote server" : "Export file to remote server";
     }
 
-    private String buildIdentity(String remoteHost, String operationType, String remotePath, String localPath) {
-        StringBuilder stringBuilder = new StringBuilder(operationType).append(" from ").append(remoteHost);
-        if(operationType.equals(OperationType.IMPORT.toString())){
-            stringBuilder.append(" : ").append(remotePath).append(" to ").append(localPath);
-        }else{
-            stringBuilder.append(" : ").append(localPath).append(" to ").append(remotePath);
-        }
-
-        return stringBuilder.toString();
-    }
-
     @Override
-    public void saveTrigger(JobDetail jobDetail, SchedulerRequest schedulerRequest) {
+    public void saveTrigger(JobDetail jobDetail, int totalInterval, int frequency, Date startAt) {
         if(jobDetail == null){
             throw new FileUploaderException("Must to provide specific job", HttpStatus.NOT_FOUND);
         }
-        SimpleTrigger simpleTrigger = buildJobTrigger(schedulerRequest, jobDetail);
-
         try {
-            scheduler.scheduleJob(simpleTrigger);
+            SimpleTrigger simpleTrigger = buildJobTrigger(jobDetail, totalInterval, frequency, startAt);
+            if(scheduler.checkExists(simpleTrigger.getKey())){
+                throw new FileUploaderException("Job already running", HttpStatus.BAD_REQUEST);
+            }else{
+                scheduler.scheduleJob(simpleTrigger);
+            }
         } catch (SchedulerException e) {
             throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (FileUploaderException exception){
+            throw exception;
         }
     }
 
 
 
-    private SimpleTrigger buildJobTrigger(SchedulerRequest schedulerRequest, JobDetail jobDetail) {
+    private SimpleTrigger buildJobTrigger(JobDetail jobDetail, int totalInterval, int frequency, Date startAt) {
         TriggerBuilder<Trigger> buildTrigger = TriggerBuilder.newTrigger();
         buildTrigger.forJob(jobDetail);
         buildTrigger.withIdentity("trigger key: "+ jobDetail.getKey());
         buildTrigger.withDescription("trigger description: "+ jobDetail.getDescription());
 
-        if(schedulerRequest.getStartAt() == null){
+        if(startAt == null){
             buildTrigger.startNow();
         }else{
-            buildTrigger.startAt(schedulerRequest.getStartAt());
+            buildTrigger.startAt(startAt);
         }
 
         SimpleScheduleBuilder scheduleBuilder = simpleSchedule();
 
-        if(schedulerRequest.getTotalInterval() == 0){
+        if(totalInterval == 0){
             scheduleBuilder.repeatForever();
         }else{
-            scheduleBuilder.withRepeatCount(schedulerRequest.getTotalInterval());
+            scheduleBuilder.withRepeatCount(totalInterval);
         }
 
-        scheduleBuilder.withIntervalInSeconds(schedulerRequest.getFrequency());
+        scheduleBuilder.withIntervalInSeconds(frequency);
         buildTrigger.withSchedule(scheduleBuilder.withMisfireHandlingInstructionIgnoreMisfires());
 
         return (SimpleTrigger) buildTrigger.build();
@@ -116,10 +111,10 @@ public class QuartzSchedulerServiceImpl implements QuartzSchedulerService {
         JobDetail jobDetail = null;
         try {
             jobDetail = scheduler.getJobDetail(jobKey);
+            return jobDetail;
         } catch (SchedulerException e) {
             throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        return jobDetail;
     }
 
     @Override

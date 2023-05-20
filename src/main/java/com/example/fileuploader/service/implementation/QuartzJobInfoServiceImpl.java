@@ -1,6 +1,7 @@
 package com.example.fileuploader.service.implementation;
 
 import com.example.fileuploader.model.Configuration;
+import com.example.fileuploader.model.OperationType;
 import com.example.fileuploader.model.PathConfiguration;
 import com.example.fileuploader.model.entities.QuartzJobInfo;
 import com.example.fileuploader.model.response.JobInfoResponse;
@@ -16,13 +17,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
@@ -38,6 +37,18 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
         this.quartzSchedulerService = quartzSchedulerService;
     }
 
+    private String buildIdentity(String remoteHost, String operationType, String remotePath, String localPath) {
+        StringBuilder stringBuilder = new StringBuilder(operationType).append(" from ").append(remoteHost);
+        if(operationType.equals(OperationType.IMPORT.toString())){
+            stringBuilder.append(" : ").append(remotePath).append(" to ").append(localPath);
+        }else{
+            stringBuilder.append(" : ").append(localPath).append(" to ").append(remotePath);
+        }
+
+        return stringBuilder.toString();
+    }
+
+
     @Override
     public JobInfoResponse saveQuartzJob(JobInfo jobInfo) {
         try{
@@ -49,26 +60,37 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
 
             String fileName = uploadFileToLocal(jobInfo.getMultipartFile());
             String groupId = generateGroupId(jobInfo.getOperationType(), jobInfo.getRemoteHost());
+
             QuartzJobInfo quartzJobInfo = null;
 
             for (PathConfiguration path : jobInfo.getPaths()){
                 quartzJobInfo = new QuartzJobInfo();
+                String jobKey = buildIdentity(jobInfo.getRemoteHost(), jobInfo.getOperationType(), path.getRemotePath(), path.getLocalPath());
                 BeanUtils.copyProperties(jobInfo, quartzJobInfo);
                 quartzJobInfo.setLocalPath(path.getLocalPath());
                 quartzJobInfo.setRemotePath(path.getRemotePath());
                 quartzJobInfo.setFileName(fileName);
                 quartzJobInfo.setCreatedBy(System.getProperty("user.home"));
                 quartzJobInfo.setExecutedAt(Calendar.getInstance().getTime());
-                quartzJobInfo.setJobKey(quartzSchedulerService.saveJob(quartzJobInfo));
+                quartzJobInfo.setJobKey(jobKey);
                 quartzJobInfo.setJobGroup(groupId);
+                quartzSchedulerService.saveJob(quartzJobInfo);
                 quartzJobInfoRepository.save(quartzJobInfo);
             }
-
 
             //TODO: NEED CHECK IF THE JOB GROUP ALREADY EXIST
 
             return new JobInfoResponse(groupId);
 
+        }catch (Exception exception){
+            throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Override
+    public List<QuartzJobInfo> findJobInfoByGroupId(String groupId) {
+        try{
+            return quartzJobInfoRepository.findByJobGroup(groupId);
         }catch (Exception exception){
             throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -94,7 +116,7 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
         }
 
         multipartFile.transferTo(path);
-        return fileName;
+        return path.toAbsolutePath().toString();
     }
 
     @Override
@@ -107,16 +129,12 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
     }
 
     @Override
-    public List<JobInfo> getQuartzJobInfos() {
+    public Map<String, List<QuartzJobInfo>> getQuartzJobInfos() {
         List<QuartzJobInfo> jobInfos = quartzJobInfoRepository.findAll();
         return convertedList(jobInfos);
     }
 
-    private List<JobInfo> convertedList(List<QuartzJobInfo> jobInfos){
-        List<JobInfo> jobInfoList = new ArrayList<>();
-        for (QuartzJobInfo jobInfo : jobInfos) {
-            jobInfoList.add(modelMapper.map(jobInfo, JobInfo.class));
-        }
-        return jobInfoList;
+    private Map<String, List<QuartzJobInfo>> convertedList(List<QuartzJobInfo> jobInfos){
+        return jobInfos.stream().collect(Collectors.groupingBy(QuartzJobInfo::getJobGroup));
     }
 }
