@@ -5,7 +5,6 @@ import com.example.fileuploader.model.*;
 import com.example.fileuploader.model.entities.QuartzJobInfo;
 import com.example.fileuploader.quartzscheduler.QuartzSchedulerService;
 import com.example.fileuploader.quartzscheduler.job.TaskJob;
-import com.example.fileuploader.service.QuartzJobInfoService;
 import org.quartz.*;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -49,14 +48,14 @@ public class QuartzSchedulerServiceImpl implements QuartzSchedulerService {
 
         return JobBuilder.newJob(TaskJob.class)
                 .withIdentity(jobInfo.getJobKey())
-                .withDescription(buildDescription(jobInfo.getOperationType()))
+                .withDescription(buildDescription(jobInfo.getSourceHost(), jobInfo.getDestinationPath(), jobInfo.getDestinationHost(), jobInfo.getDestinationPath()))
                 .usingJobData(map)
                 .storeDurably()
                 .build();
     }
 
-    private String buildDescription(String operationType) {
-        return operationType.equals(OperationType.IMPORT.toString()) ? "Import file from remote server" : "Export file to remote server";
+    private String buildDescription(String sourceHost, String sourcePath, String destinationHost, String destinationPath) {
+        return new StringBuilder("Fetch files from ").append(sourceHost).append(" : ").append(sourcePath).append(" and send to ").append(destinationHost).append(" : ").append(destinationPath).toString();
     }
 
     @Override

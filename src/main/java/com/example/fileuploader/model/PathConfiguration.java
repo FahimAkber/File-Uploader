@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PathConfiguration {
-    private String remotePath;
-    private String localPath;
+    private String sourcePath;
+    private String destinationPath;
 }

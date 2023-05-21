@@ -13,12 +13,16 @@ import java.util.List;
 @AllArgsConstructor
 public class JobInfo implements Serializable {
     private int id;
-    private String operationType;
     private String fileExtension;
-    private String remoteHost;
-    private int remotePort;
-    private String remoteUser;
-    private MultipartFile multipartFile;
+    private String sourceHost;
+    private int sourcePort;
+    private String sourceUser;
+    private MultipartFile sourceMultipartFile;
+
+    private String destinationHost;
+    private int destinationPort;
+    private String destinationUser;
+    private MultipartFile destinationMultipartFile;
     private List<PathConfiguration> paths;
 //
 //    public JobInfo(String jobType, String operationType, String localExtension, String remoteExtension, String projectName, String remoteHost, int remotePort, String remoteUser, String remotePassword, String remotePath, String localPath) {

@@ -24,12 +24,7 @@ public class TaskJob implements Job {
         try{
             JobDataMap map = jobExecutionContext.getMergedJobDataMap();
             QuartzJobInfo jobInfo = (QuartzJobInfo) map.get("jobInfo");
-
-            if(jobInfo.getOperationType().equals(String.valueOf(OperationType.EXPORT))){
-                fileTransferService.setFiles(jobInfo);
-            }else{
-                fileTransferService.getFiles(jobInfo);
-            }
+            fileTransferService.getFiles(jobInfo);
         }catch (FileUploaderException exception){
             LoggerFactory.getLogger("File Uploader").info(exception.getErrorMessage());
         }catch (Exception exception){
@@ -37,5 +32,3 @@ public class TaskJob implements Job {
         }
     }
 }
-
-

@@ -37,39 +37,36 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
         this.quartzSchedulerService = quartzSchedulerService;
     }
 
-    private String buildIdentity(String remoteHost, String operationType, String remotePath, String localPath) {
-        StringBuilder stringBuilder = new StringBuilder(operationType).append(" from ").append(remoteHost);
-        if(operationType.equals(OperationType.IMPORT.toString())){
-            stringBuilder.append(" : ").append(remotePath).append(" to ").append(localPath);
-        }else{
-            stringBuilder.append(" : ").append(localPath).append(" to ").append(remotePath);
-        }
-
-        return stringBuilder.toString();
+    private String buildIdentity(String sourceHost, String destinationHost, String sourcePath, String destinationPath) {
+        return new StringBuilder("Fetch files from ").append(sourceHost).append(" : ").append(sourcePath).append(" and send to ").append(destinationHost).append(" : ").append(destinationPath).toString();
     }
 
 
     @Override
     public JobInfoResponse saveQuartzJob(JobInfo jobInfo) {
         try{
-            Util.checkRequiredField("operationType", jobInfo.getOperationType());
             Util.checkRequiredField("fileExtension", jobInfo.getFileExtension());
-            Util.checkRequiredField("remoteHost", jobInfo.getRemoteHost());
-            Util.checkRequiredField("remoteUser", jobInfo.getRemoteUser());
-            Util.checkRequiredFile("multipartFile", jobInfo.getMultipartFile());
+            Util.checkRequiredField("sourceHost", jobInfo.getSourceHost());
+            Util.checkRequiredField("sourceUser", jobInfo.getSourceUser());
+            Util.checkRequiredFile("sourceMultipartFile", jobInfo.getSourceMultipartFile());
+            Util.checkRequiredField("destinationHost", jobInfo.getDestinationHost());
+            Util.checkRequiredField("destinationUser", jobInfo.getDestinationUser());
+            Util.checkRequiredFile("destinationMultipartFile", jobInfo.getDestinationMultipartFile());
 
-            String fileName = uploadFileToLocal(jobInfo.getMultipartFile());
-            String groupId = generateGroupId(jobInfo.getOperationType(), jobInfo.getRemoteHost());
+            String sourceFileName = uploadFileToLocal(jobInfo.getSourceMultipartFile());
+            String destinationFileName = uploadFileToLocal(jobInfo.getDestinationMultipartFile());
+            String groupId = generateGroupId(jobInfo.getSourceHost());
 
             QuartzJobInfo quartzJobInfo = null;
 
             for (PathConfiguration path : jobInfo.getPaths()){
                 quartzJobInfo = new QuartzJobInfo();
-                String jobKey = buildIdentity(jobInfo.getRemoteHost(), jobInfo.getOperationType(), path.getRemotePath(), path.getLocalPath());
+                String jobKey = buildIdentity(jobInfo.getSourceHost(), jobInfo.getDestinationHost(), path.getSourcePath(), path.getDestinationPath());
                 BeanUtils.copyProperties(jobInfo, quartzJobInfo);
-                quartzJobInfo.setLocalPath(path.getLocalPath());
-                quartzJobInfo.setRemotePath(path.getRemotePath());
-                quartzJobInfo.setFileName(fileName);
+                quartzJobInfo.setSourcePath(path.getSourcePath());
+                quartzJobInfo.setSourceFileName(sourceFileName);
+                quartzJobInfo.setDestinationPath(path.getDestinationPath());
+                quartzJobInfo.setDestinationFileName(destinationFileName);
                 quartzJobInfo.setCreatedBy(System.getProperty("user.home"));
                 quartzJobInfo.setExecutedAt(Calendar.getInstance().getTime());
                 quartzJobInfo.setJobKey(jobKey);
@@ -96,8 +93,8 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
         }
     }
 
-    private String generateGroupId(String operationType, String remoteHost){
-        return new StringBuilder(operationType).append(" from ").append(remoteHost).toString();
+    private String generateGroupId(String remoteHost){
+        return new StringBuilder("Connection").append(" : ").append(remoteHost).toString();
     }
 
     private String generateFileName(String fileName) {

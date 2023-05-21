@@ -51,8 +51,9 @@ public class FileTransferController {
     }
 
     @PostMapping(value = "save-job-info", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public ResponseEntity<Object> saveJobInfo(@RequestPart("jobInfo") JobInfo jobInfo, @RequestPart("multipartFile") MultipartFile multipartFile){
-        jobInfo.setMultipartFile(multipartFile);
+    public ResponseEntity<Object> saveJobInfo(@RequestPart("jobInfo") JobInfo jobInfo, @RequestPart("sourceMultipartFile") MultipartFile sourceMultipartFile, @RequestPart("destinationMultipartFile") MultipartFile destinationMultipartFile){
+        jobInfo.setSourceMultipartFile(sourceMultipartFile);
+        jobInfo.setDestinationMultipartFile(destinationMultipartFile);
         return ResponseEntity.ok(quartzJobInfoService.saveQuartzJob(jobInfo));
     }
 

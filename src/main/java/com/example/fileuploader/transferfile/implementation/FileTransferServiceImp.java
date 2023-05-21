@@ -81,12 +81,12 @@ public class FileTransferServiceImp implements FileTransferService {
             ChannelSftp channelSftp = null;
 
             try {
-                File localFile = createDirIfNotExist(jobInfo.getLocalPath());
-                session = createSession(jobInfo.getRemoteUser(), jobInfo.getRemoteHost(), jobInfo.getRemotePort(), jobInfo.getFileName());
+                File localFile = createDirIfNotExist("D:/DotMed");
+                session = createSession(jobInfo.getSourceUser(), jobInfo.getSourceHost(), jobInfo.getSourcePort(), jobInfo.getSourceFileName());
                 channelSftp = createChannelSftp(session);
                 String concatLocalPath = localFile.getPath();
-                channelSftp.cd(jobInfo.getRemotePath());
-                Vector list = channelSftp.ls(jobInfo.getRemotePath().concat("/*.bin"));
+                channelSftp.cd(jobInfo.getSourcePath());
+                Vector list = channelSftp.ls(jobInfo.getSourcePath().concat("/*").concat(jobInfo.getFileExtension()));
 
                 Partition<ChannelSftp.LsEntry> partition = Partition.getPartitionInstance(list, 500);
                 for (List<ChannelSftp.LsEntry> objects : partition) {
