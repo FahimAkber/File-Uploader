@@ -13,5 +13,8 @@ public interface UploadedFileRepository extends JpaRepository<UploadedFile, Inte
     @Query("SELECT UF.fileName FROM UploadedFile AS UF where UF.fileName IN :fileNames")
     List<String> findAllByFileNameList(@Param("fileNames") List<String> fileNames);
 
+    @Query("")
+    List<UploadedFile> findByStatusGroupByJobKey(@Param("status") String status, @Param("jobKey") String jobKey);
+
     UploadedFile findByFileName(String fileName);
 }

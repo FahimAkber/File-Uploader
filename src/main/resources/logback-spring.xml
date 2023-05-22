@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true" scanPeriod="60 seconds">
 
-    <property name="LOGS" value="/opt/tomcat/logs"/>
+    <property name="LOGS" value="/opt/tomcat/logs/"/>
 
     <appender name="Console"
               class="ch.qos.logback.core.ConsoleAppender">
@@ -37,7 +37,7 @@
         <appender-ref ref="Console"/>
     </root>
 
-    <logger name="com.mislbd" level="debug" additivity="false">
+    <logger name="com.example" level="debug" additivity="false">
         <appender-ref ref="RollingFile"/>
         <appender-ref ref="Console"/>
     </logger>

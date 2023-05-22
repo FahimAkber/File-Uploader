@@ -1,7 +1,7 @@
 package com.example.fileuploader.transferfile.implementation;
 
 import com.example.fileuploader.exceptions.FileUploaderException;
-import com.example.fileuploader.model.FileThread;
+import com.example.fileuploader.model.Status;
 import com.example.fileuploader.model.entities.QuartzJobInfo;
 import com.example.fileuploader.model.entities.UploadedFile;
 import com.example.fileuploader.service.UploadedFileService;
@@ -9,8 +9,6 @@ import com.example.fileuploader.transferfile.FileTransferService;
 import com.jcraft.jsch.*;
 import com.example.fileuploader.configuration.Partition;
 import com.example.fileuploader.model.Configuration;
-import com.example.fileuploader.model.JobInfo;
-import com.jcraft.jsch.jcraft.Compression;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -81,7 +79,7 @@ public class FileTransferServiceImp implements FileTransferService {
             ChannelSftp channelSftp = null;
 
             try {
-                File localFile = createDirIfNotExist("D:/DotMed");
+                File localFile = createDirIfNotExist(configuration.getLocalFileLocation());
                 session = createSession(jobInfo.getSourceUser(), jobInfo.getSourceHost(), jobInfo.getSourcePort(), jobInfo.getSourceFileName());
                 channelSftp = createChannelSftp(session);
                 String concatLocalPath = localFile.getPath();
@@ -95,7 +93,7 @@ public class FileTransferServiceImp implements FileTransferService {
 
                     for(ChannelSftp.LsEntry entry : objects){
                         if(!checkedFiles.contains(entry.getFilename())){
-                            uploadFileToLocalDestination(entry, concatLocalPath, channelSftp);
+                            uploadFileToLocalDestination(entry.getFilename(), concatLocalPath, channelSftp, jobInfo.getJobKey());
                         }else{
                             LoggerFactory.getLogger(LOGGER_NAME).info("Already imported Inward File: {}", entry.getFilename());
                         }
@@ -156,8 +154,8 @@ public class FileTransferServiceImp implements FileTransferService {
 
     @Override
     public void setFiles(QuartzJobInfo jobInfo) {
-//        if(!jobQueue.contains(jobInfo.getJobType())){
-//            jobQueue.add(jobInfo.getJobType());
+//        if(!jobQueue.contains(jobInfo.getJobKey())){
+//            jobQueue.add(jobInfo.getJobKey());
 //            Session session = null;
 //            ChannelSftp channelSftp = null;
 //
@@ -208,16 +206,16 @@ public class FileTransferServiceImp implements FileTransferService {
             throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    private void uploadFileToLocalDestination(ChannelSftp.LsEntry entry, String localPath, ChannelSftp channelSftp) throws SftpException {
+    private void uploadFileToLocalDestination(String fileName, String localPath, ChannelSftp channelSftp, String jobKey) throws SftpException {
         LocalDateTime startTime = LocalDateTime.now();
-        channelSftp.get(entry.getFilename(), localPath);
+        channelSftp.get(fileName, localPath);
         LocalDateTime endTime = LocalDateTime.now();
         Duration duration = Duration.between(startTime, endTime);
-
-        LoggerFactory.getLogger(LOGGER_NAME).info("Successfully imported inward File: {}, start at: {}, end at: {}, total time: {}", entry.getFilename(), startTime.toString(), endTime.toString(), duration.getSeconds());
+        fileService.save(new UploadedFile(fileName, jobKey, Status.RECEIVED.value, endTime.toLocalDate()));
+        LoggerFactory.getLogger(LOGGER_NAME).info("Successfully imported inward File: {}, start at: {}, end at: {}, total time: {}", fileName, startTime.toString(), endTime.toString(), duration.getSeconds());
     }
     private File createDirIfNotExist(String rootPath){
-        File file = new File(rootPath.concat("/").concat(getCurrentDate()));
+        File file = new File(rootPath);
         if(!file.exists()){
             file.mkdirs();
         }

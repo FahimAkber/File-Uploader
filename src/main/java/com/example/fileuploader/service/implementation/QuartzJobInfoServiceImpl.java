@@ -1,7 +1,6 @@
 package com.example.fileuploader.service.implementation;
 
 import com.example.fileuploader.model.Configuration;
-import com.example.fileuploader.model.OperationType;
 import com.example.fileuploader.model.PathConfiguration;
 import com.example.fileuploader.model.entities.QuartzJobInfo;
 import com.example.fileuploader.model.response.JobInfoResponse;
@@ -106,7 +105,7 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
     private String uploadFileToLocal(MultipartFile multipartFile) throws Exception {
 
         String fileName = generateFileName(multipartFile.getOriginalFilename());;
-        Path path = Paths.get(configuration.getFileStoreLocation(), fileName);
+        Path path = Paths.get(configuration.getSecureFileLocation(), fileName);
 
         if(!Files.exists(path.getParent())){
             Files.createDirectory(path.getParent());
