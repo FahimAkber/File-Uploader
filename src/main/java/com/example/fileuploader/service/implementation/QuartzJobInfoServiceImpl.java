@@ -55,13 +55,13 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
 
             String sourceFileName = uploadFileToLocal(jobInfo.getSourceMultipartFile());
             String destinationFileName = uploadFileToLocal(jobInfo.getDestinationMultipartFile());
-            String groupId = generateGroupId(jobInfo.getSourceHost());
+            String groupId = UUID.randomUUID().toString();
 
             QuartzJobInfo quartzJobInfo = null;
 
             for (PathConfiguration path : jobInfo.getPaths()){
                 quartzJobInfo = new QuartzJobInfo();
-                String jobKey = buildIdentity(jobInfo.getSourceHost(), jobInfo.getDestinationHost(), path.getSourcePath(), path.getDestinationPath());
+                String jobKey = UUID.randomUUID().toString();
                 BeanUtils.copyProperties(jobInfo, quartzJobInfo);
                 quartzJobInfo.setSourcePath(path.getSourcePath());
                 quartzJobInfo.setSourceFileName(sourceFileName);
