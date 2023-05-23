@@ -64,6 +64,9 @@ public class QuartzSchedulerServiceImpl implements QuartzSchedulerService {
             throw new FileUploaderException("Must to provide specific job", HttpStatus.NOT_FOUND);
         }
         try {
+            if(!scheduler.checkExists(jobDetail.getKey())){
+                scheduler.addJob(jobDetail, true);
+            }
             SimpleTrigger simpleTrigger = buildJobTrigger(jobDetail, totalInterval, frequency, startAt);
             if(scheduler.checkExists(simpleTrigger.getKey())){
                 throw new FileUploaderException("Job already running", HttpStatus.BAD_REQUEST);
@@ -175,5 +178,20 @@ public class QuartzSchedulerServiceImpl implements QuartzSchedulerService {
         } catch (SchedulerException | NullPointerException e) {
             throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @Override
+    public void savePrivateJob(String jobType, int totalInterval, int frequency, Date startAt) {
+        JobDataMap map = new JobDataMap();
+        map.put("jobType", jobType);
+
+        JobDetail jobDetail = JobBuilder.newJob(TaskJob.class)
+                .withIdentity("Private Job Type : ".concat(jobType))
+                .withDescription(jobType.equals("Sender") ? "Job for sending file to destination" : "Job for processing files")
+                .usingJobData(map)
+                .storeDurably()
+                .build();
+
+        saveTrigger(jobDetail, totalInterval, frequency, startAt);
     }
 }

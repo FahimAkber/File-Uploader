@@ -1,5 +1,6 @@
 package com.example.fileuploader.service.implementation;
 
+import com.example.fileuploader.model.KeyWiseValue;
 import com.example.fileuploader.model.entities.UploadedFile;
 import com.example.fileuploader.service.UploadedFileService;
 import com.example.fileuploader.model.UploadedFileInfo;
@@ -8,7 +9,9 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class UploadedFileServiceImpl implements UploadedFileService {
@@ -41,6 +44,33 @@ public class UploadedFileServiceImpl implements UploadedFileService {
     @Override
     public List<String> getCheckedFiles(List<String> fileNames) {
         return uploadedFileRepository.findAllByFileNameList(fileNames);
+    }
+
+    @Override
+    public Map<String, String[]> getKeyWiseFileByStatus(String status) {
+        try{
+            Map<String, String[]> fileMap = new HashMap<>();
+            List<Map<String, String>>  keyWiseFilesMap = uploadedFileRepository.findKeyWiseFileByStatus(status);
+
+            for (Map<String, String> map : keyWiseFilesMap){
+                fileMap.put(map.get("jobKey"), map.get("fileName").split(","));
+            }
+
+            return fileMap;
+        }catch (Exception exception){
+            throw exception;
+        }
+    }
+
+    @Override
+    public void updateStatusOfFile(String fileName, String status) {
+        try {
+            UploadedFile uploadedFile = uploadedFileRepository.findByFileName(fileName);
+            uploadedFile.setStatus(status);
+            uploadedFileRepository.save(uploadedFile);
+        }catch (Exception exception){
+            throw exception;
+        }
     }
 
     private List<UploadedFileInfo> convertFileList(List<UploadedFile> files) {

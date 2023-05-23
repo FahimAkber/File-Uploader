@@ -14,5 +14,6 @@ public class SchedulerRequest {
     private int totalInterval;
     private int frequency;
     private Date startAt;
+    private String jobType;
 }
 

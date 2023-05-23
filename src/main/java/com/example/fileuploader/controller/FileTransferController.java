@@ -120,19 +120,16 @@ public class FileTransferController {
         }
     }
 
-    @GetMapping("test-file-transfer")
-    public ResponseEntity<Object> transferFile(){
-       fileTransferService.getTestFiles();
+    @PostMapping("schedule-private-job")
+    public ResponseEntity<Object> schedulingPrivateJob(@RequestBody SchedulerRequest schedulerRequest){
+        int totalInterval = schedulerRequest.getTotalInterval();
+        int frequency = schedulerRequest.getFrequency();
+        Date startAt = schedulerRequest.getStartAt();
+        String jobType = schedulerRequest.getJobType();
 
-//        Thread thread1 = new Thread(new TestThread());
-//        Thread thread2 = new Thread(new TestThread());
-//        Thread thread3 = new Thread(new TestThread());
-//
-//        thread1.start();
-//        thread2.start();
-//        thread3.start();
+        quartzSchedulerService.savePrivateJob(jobType, totalInterval, frequency, startAt);
 
-        return ResponseEntity.ok("Tested");
+        return ResponseEntity.ok("Successfully schedule the job");
     }
 }
 

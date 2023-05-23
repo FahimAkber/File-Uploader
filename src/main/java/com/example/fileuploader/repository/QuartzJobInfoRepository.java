@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface QuartzJobInfoRepository extends JpaRepository<QuartzJobInfo, Integer> {
     List<QuartzJobInfo> findByJobGroup(String jobGroup);
+    QuartzJobInfo findByJobKey(String jobKey);
 }

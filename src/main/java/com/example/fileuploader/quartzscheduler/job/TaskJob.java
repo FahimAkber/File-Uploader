@@ -22,7 +22,19 @@ public class TaskJob implements Job {
         try{
             JobDataMap map = jobExecutionContext.getMergedJobDataMap();
             QuartzJobInfo jobInfo = (QuartzJobInfo) map.get("jobInfo");
-            fileTransferService.getFiles(jobInfo);
+            if(jobInfo != null){
+                fileTransferService.getFiles(jobInfo);
+            }else{
+                String jobType = (String) map.get("jobType");
+                if(jobType.equals("Sender")){
+                    fileTransferService.setFiles();
+                }else if(jobType.equals("Processor")){
+                    //Call processor method
+                }else{
+                    //do something
+                }
+            }
+
         }catch (FileUploaderException exception){
             LoggerFactory.getLogger("File Uploader").info(exception.getErrorMessage());
         }catch (Exception exception){

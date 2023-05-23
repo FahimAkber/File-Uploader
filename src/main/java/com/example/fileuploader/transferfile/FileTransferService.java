@@ -11,6 +11,6 @@ public interface FileTransferService {
     ChannelSftp createChannelSftp(Session session);
     void getFiles(QuartzJobInfo jobInfo);
     void getTestFiles();
-    void setFiles(QuartzJobInfo jobInfo);
+    void setFiles();
     void destroyConnection(Session session, ChannelSftp channelSftp);
 }

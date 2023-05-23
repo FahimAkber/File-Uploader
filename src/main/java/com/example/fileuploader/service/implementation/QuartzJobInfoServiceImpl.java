@@ -92,6 +92,15 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
         }
     }
 
+    @Override
+    public QuartzJobInfo findJobInfoByJobKey(String jobKey) {
+        try{
+            return quartzJobInfoRepository.findByJobKey(jobKey);
+        }catch (Exception exception){
+            throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
     private String generateGroupId(String remoteHost){
         return new StringBuilder("Connection").append(" : ").append(remoteHost).toString();
     }

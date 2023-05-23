@@ -4,6 +4,7 @@ import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.model.Status;
 import com.example.fileuploader.model.entities.QuartzJobInfo;
 import com.example.fileuploader.model.entities.UploadedFile;
+import com.example.fileuploader.service.QuartzJobInfoService;
 import com.example.fileuploader.service.UploadedFileService;
 import com.example.fileuploader.transferfile.FileTransferService;
 import com.jcraft.jsch.*;
@@ -14,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -24,13 +26,15 @@ import java.util.stream.Collectors;
 public class FileTransferServiceImp implements FileTransferService {
 
     private final UploadedFileService fileService;
+    private final QuartzJobInfoService quartzJobInfoService;
     private Configuration configuration;
     private JSch jSch;
     private Queue<String> jobQueue;
     private static final String LOGGER_NAME = "File Uploader";
 
-    public FileTransferServiceImp(UploadedFileService fileService, Configuration configuration) {
+    public FileTransferServiceImp(UploadedFileService fileService, QuartzJobInfoService quartzJobInfoService, Configuration configuration) {
         this.fileService = fileService;
+        this.quartzJobInfoService = quartzJobInfoService;
         this.configuration = configuration;
         jSch = new JSch();
         jobQueue = new LinkedList<>();
@@ -153,44 +157,43 @@ public class FileTransferServiceImp implements FileTransferService {
     }
 
     @Override
-    public void setFiles(QuartzJobInfo jobInfo) {
-//        if(!jobQueue.contains(jobInfo.getJobKey())){
-//            jobQueue.add(jobInfo.getJobKey());
-//            Session session = null;
-//            ChannelSftp channelSftp = null;
-//
-//            try {
-//                File localFile = createDirIfNotExist(jobInfo.getLocalPath(), jobInfo.getFileExtension());
-//                session = createSession(jobInfo.getRemoteUser(), jobInfo.getRemotePassword(), jobInfo.getRemoteHost(), jobInfo.getRemotePort());
-//                channelSftp = createChannelSftp(session);
-//                File[] files = Objects.requireNonNull(localFile.listFiles());
-//                Partition<File> partition = Partition.getPartitionInstance(Arrays.asList(files), 500);
-//                for(int i = 0; i < partition.size(); i++){
-//                    List<File> objects = partition.get(i);
-//                    List<String> fileNames = objects.stream().map(File::getName).collect(Collectors.toList());
-//                    List<String> checkedFiles = fileService.getCheckedFiles(fileNames);
-//                    for(File file : objects){
-//                        if(!checkedFiles.contains(file.getName())){
-//                            channelSftp.put(file.getAbsolutePath(), jobInfo.getRemotePath().concat("/").concat(jobInfo.getRemoteExtension()));
-//                            fileService.save(new UploadedFile(file.getName()));
-//                            LoggerFactory.getLogger(LOGGER_NAME).info("Successfully uploaded outward file: {}", file.getName());
-//                        }else{
-//                            LoggerFactory.getLogger(LOGGER_NAME).info("Already uploaded outward file: {}", file.getName());
-//                        }
-//                    }
-//                }
-//            } catch ( SftpException e) {
-//                throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-//            } catch (FileUploaderException exception){
-//                throw exception;
-//            } finally {
-//                jobQueue.remove(jobInfo.getJobType());
-//                destroyConnection(session, channelSftp);
-//                LoggerFactory.getLogger("End Now: " + Calendar.getInstance().getTime());
-//            }
-//        }else{
-//            LoggerFactory.getLogger(LOGGER_NAME).info("Previous Job: {} is running.", jobInfo.getJobType());
-//        }
+    public void setFiles() {
+        Map<String, String[]> keyWiseFile = fileService.getKeyWiseFileByStatus(Status.RECEIVED.value);
+        for(String jobKey : keyWiseFile.keySet()){
+            String containerKey = "Sender Job : ".concat(jobKey);
+            QuartzJobInfo jobInfo = quartzJobInfoService.findJobInfoByJobKey(jobKey);
+            if(!jobQueue.contains(containerKey)){
+                jobQueue.add(containerKey);
+                Session session = null;
+                ChannelSftp channelSftp = null;
+
+                try {
+                    File localFile = createDirIfNotExist(configuration.getLocalFileLocation());
+                    session = createSession(jobInfo.getDestinationUser(), jobInfo.getDestinationHost(), jobInfo.getDestinationPort(), jobInfo.getDestinationFileName());
+                    channelSftp = createChannelSftp(session);
+                    String[] fileNames = keyWiseFile.get(jobKey);
+                    for(String fileName : fileNames){
+                        File file = new File(localFile, fileName);
+                        if(file.exists()){
+                            channelSftp.put(file.getAbsolutePath(), jobInfo.getDestinationPath());
+                            fileService.updateStatusOfFile(fileName, Status.SENT.value);
+                            LoggerFactory.getLogger(LOGGER_NAME).info("Successfully uploaded outward file: {}", file.getName());
+                        }
+                    }
+                } catch ( SftpException e) {
+                    throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+                catch (FileUploaderException exception){
+                    throw exception;
+                } finally {
+                    jobQueue.remove(containerKey);
+                    destroyConnection(session, channelSftp);
+                    LoggerFactory.getLogger("End Now: " + Calendar.getInstance().getTime());
+                }
+            }else{
+                LoggerFactory.getLogger(LOGGER_NAME).info("Previous Job: {} is running.", containerKey);
+            }
+        }
     }
 
     @Override

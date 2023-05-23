@@ -18,7 +18,7 @@ public class Configuration {
     private String configurationValue;
     @Value("${channel.type}")
     private String channelType;
-    @Value("${file.location}")
+    @Value("${secure.file.location}")
     private String secureFileLocation;
     @Value("${local.file.location}")
     private String localFileLocation;

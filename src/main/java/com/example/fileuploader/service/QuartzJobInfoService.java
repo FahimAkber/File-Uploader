@@ -10,6 +10,7 @@ import java.util.Map;
 public interface QuartzJobInfoService {
     JobInfoResponse saveQuartzJob(JobInfo quartzJobInfo);
     List<QuartzJobInfo> findJobInfoByGroupId(String groupId);
+    QuartzJobInfo findJobInfoByJobKey(String jobKey);
 
 //    Not working: need to pass quartzJobInfo
     JobInfo getQuartzJobInfoById(int id);
