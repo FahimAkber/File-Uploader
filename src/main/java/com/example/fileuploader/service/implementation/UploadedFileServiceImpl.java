@@ -47,12 +47,18 @@ public class UploadedFileServiceImpl implements UploadedFileService {
     @Override
     public List<UploadedFileInfo> getFilesByStatusAndCriteria(String status) {
         try{
-            List<UploadedFileInfo> filesByStatusAndCriteria = uploadedFileRepository.findByStatusAndCriteria(status);
-            filesByStatusAndCriteria.stream().forEach(uploadedFileInfo ->
-                    uploadedFileInfo.setFileNames(Arrays.asList(uploadedFileInfo.getFileName().split(",")))
-            );
+            List<Object[]> filesByStatusAndCriteria = uploadedFileRepository.findByStatusAndCriteria(status);
+            List<UploadedFileInfo> files = new ArrayList<>();
+            for (Object[] result : filesByStatusAndCriteria) {
+                String destinationHost = (String) result[0];
+                String destinationPath = (String) result[1];
+                String fileName = (String) result[2];
 
-            return filesByStatusAndCriteria;
+                UploadedFileInfo uploadedFileInfo = new UploadedFileInfo(destinationHost, destinationPath, Arrays.asList(fileName.split(",")));
+                files.add(uploadedFileInfo);
+            }
+
+            return files;
         }catch (Exception exception){
             throw exception;
         }

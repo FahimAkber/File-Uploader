@@ -18,7 +18,7 @@ public interface UploadedFileRepository extends JpaRepository<UploadedFile, Inte
     List<String> findAllByFileNameList(@Param("fileNames") List<String> fileNames);
 
     @Query(value = "SELECT destination_host as destinationHost, destination_path as destinationPath, GROUP_CONCAT(file_name) as fileName FROM uploaded_file WHERE status = :status GROUP BY destination_host, destination_path", nativeQuery = true)
-    List<UploadedFileInfo> findByStatusAndCriteria(@Param("status") String status);
+    List<Object[]> findByStatusAndCriteria(@Param("status") String status);
 
     @Modifying
     @Query("UPDATE UploadedFile UF SET UF.status = :status WHERE UF.fileName = :fileName")

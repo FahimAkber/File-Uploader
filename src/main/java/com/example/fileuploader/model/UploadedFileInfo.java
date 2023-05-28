@@ -10,9 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UploadedFileInfo {
-    private int id;
     private String destinationHost;
     private String destinationPath;
-    private String fileName;
     private List<String> fileNames;
 }
