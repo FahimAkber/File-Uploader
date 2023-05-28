@@ -8,10 +8,8 @@ import com.example.fileuploader.repository.UploadedFileRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class UploadedFileServiceImpl implements UploadedFileService {
@@ -47,16 +45,14 @@ public class UploadedFileServiceImpl implements UploadedFileService {
     }
 
     @Override
-    public Map<String, String[]> getKeyWiseFileByStatus(String status) {
+    public List<UploadedFileInfo> getFilesByStatusAndCriteria(String status) {
         try{
-            Map<String, String[]> fileMap = new HashMap<>();
-            List<Map<String, String>>  keyWiseFilesMap = uploadedFileRepository.findKeyWiseFileByStatus(status);
+            List<UploadedFileInfo> filesByStatusAndCriteria = uploadedFileRepository.findByStatusAndCriteria(status);
+            filesByStatusAndCriteria.stream().forEach(uploadedFileInfo ->
+                    uploadedFileInfo.setFileNames(Arrays.asList(uploadedFileInfo.getFileName().split(",")))
+            );
 
-            for (Map<String, String> map : keyWiseFilesMap){
-                fileMap.put(map.get("jobKey"), map.get("fileName").split(","));
-            }
-
-            return fileMap;
+            return filesByStatusAndCriteria;
         }catch (Exception exception){
             throw exception;
         }

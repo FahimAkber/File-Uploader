@@ -6,10 +6,8 @@ import com.jcraft.jsch.*;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
-import java.lang.reflect.Field;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Calendar;
 import java.util.List;
 
 public class FileThread implements Runnable{

@@ -3,20 +3,22 @@ package com.example.fileuploader.controller;
 import com.example.fileuploader.model.JobInfo;
 import com.example.fileuploader.model.JobRequest;
 import com.example.fileuploader.model.SchedulerRequest;
+import com.example.fileuploader.model.ServerInfo;
 import com.example.fileuploader.model.entities.QuartzJobInfo;
 import com.example.fileuploader.service.QuartzJobInfoService;
 import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.quartzscheduler.QuartzSchedulerService;
+import com.example.fileuploader.service.ServerService;
 import com.example.fileuploader.transferfile.FileTransferService;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.util.Date;
 import java.util.List;
 
@@ -26,11 +28,13 @@ public class FileTransferController {
     private final QuartzJobInfoService quartzJobInfoService;
     private final QuartzSchedulerService quartzSchedulerService;
     private final FileTransferService fileTransferService;
+    private final ServerService serverService;
 
-    public FileTransferController(QuartzJobInfoService quartzJobInfoService, QuartzSchedulerService quartzSchedulerService, FileTransferService fileTransferService) {
+    public FileTransferController(QuartzJobInfoService quartzJobInfoService, QuartzSchedulerService quartzSchedulerService, FileTransferService fileTransferService, ServerService serverService) {
         this.quartzJobInfoService = quartzJobInfoService;
         this.quartzSchedulerService = quartzSchedulerService;
         this.fileTransferService = fileTransferService;
+        this.serverService = serverService;
     }
 
     @PostMapping("schedule-file")
@@ -50,10 +54,8 @@ public class FileTransferController {
         return ResponseEntity.ok("Successfully schedule the job");
     }
 
-    @PostMapping(value = "save-job-info", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public ResponseEntity<Object> saveJobInfo(@RequestPart("jobInfo") JobInfo jobInfo, @RequestPart("sourceMultipartFile") MultipartFile sourceMultipartFile, @RequestPart("destinationMultipartFile") MultipartFile destinationMultipartFile){
-        jobInfo.setSourceMultipartFile(sourceMultipartFile);
-        jobInfo.setDestinationMultipartFile(destinationMultipartFile);
+    @PostMapping(value = "save-job-info")
+    public ResponseEntity<Object> saveJobInfo(@RequestBody JobInfo jobInfo){
         return ResponseEntity.ok(quartzJobInfoService.saveQuartzJob(jobInfo));
     }
 
@@ -121,7 +123,8 @@ public class FileTransferController {
     }
 
     @PostMapping("schedule-private-job")
-    public ResponseEntity<Object> schedulingPrivateJob(@RequestBody SchedulerRequest schedulerRequest){
+    public ResponseEntity<Object> schedulingPrivateJob(@RequestBody SchedulerRequest schedulerRequest)
+    {
         int totalInterval = schedulerRequest.getTotalInterval();
         int frequency = schedulerRequest.getFrequency();
         Date startAt = schedulerRequest.getStartAt();
@@ -130,6 +133,21 @@ public class FileTransferController {
         quartzSchedulerService.savePrivateJob(jobType, totalInterval, frequency, startAt);
 
         return ResponseEntity.ok("Successfully schedule the job");
+    }
+
+    @PostMapping(value = "configure-server", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ResponseEntity<Object> configureServer(@RequestPart("serverInfo") ServerInfo serverInfo, @RequestPart("secureFile") MultipartFile secureFile){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        serverInfo.setSecureFile(secureFile);
+        return new ResponseEntity<>(serverService.saveServerInfo(serverInfo), headers, HttpStatus.OK);
+    }
+
+    @GetMapping("get-server-list")
+    public ResponseEntity<Object> getServers(){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return new ResponseEntity<>(serverService.getServerInfos(), headers, HttpStatus.OK);
     }
 }
 

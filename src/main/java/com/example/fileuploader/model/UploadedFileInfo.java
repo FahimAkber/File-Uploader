@@ -1,34 +1,18 @@
 package com.example.fileuploader.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class UploadedFileInfo {
     private int id;
+    private String destinationHost;
+    private String destinationPath;
     private String fileName;
-
-    public UploadedFileInfo() {
-    }
-
-    public UploadedFileInfo(String fileName) {
-        this.fileName = fileName;
-    }
-
-    public UploadedFileInfo(int id, String fileName) {
-        this.id = id;
-        this.fileName = fileName;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getFileName() {
-        return fileName;
-    }
-
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
-    }
+    private List<String> fileNames;
 }

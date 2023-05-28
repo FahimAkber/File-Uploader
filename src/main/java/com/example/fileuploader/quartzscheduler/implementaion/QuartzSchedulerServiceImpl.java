@@ -48,7 +48,7 @@ public class QuartzSchedulerServiceImpl implements QuartzSchedulerService {
 
         return JobBuilder.newJob(TaskJob.class)
                 .withIdentity(jobInfo.getJobKey())
-                .withDescription(buildDescription(jobInfo.getSourceHost(), jobInfo.getDestinationPath(), jobInfo.getDestinationHost(), jobInfo.getDestinationPath()))
+                .withDescription(buildDescription(jobInfo.getSourceServer().getHost(), jobInfo.getSourcePath(), jobInfo.getDestinationServer().getHost(), jobInfo.getDestinationPath()))
                 .usingJobData(map)
                 .storeDurably()
                 .build();

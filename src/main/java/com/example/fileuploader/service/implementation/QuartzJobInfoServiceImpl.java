@@ -9,16 +9,11 @@ import com.example.fileuploader.service.QuartzJobInfoService;
 import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.model.JobInfo;
 import com.example.fileuploader.repository.QuartzJobInfoRepository;
-import com.example.fileuploader.util.Util;
+import com.example.fileuploader.service.ServerService;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -27,12 +22,14 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
     private final QuartzJobInfoRepository quartzJobInfoRepository;
     private final ModelMapper modelMapper;
     private final Configuration configuration;
+    private final ServerService serverService;
     private final QuartzSchedulerService quartzSchedulerService;
 
-    public QuartzJobInfoServiceImpl(QuartzJobInfoRepository quartzJobInfoRepository, ModelMapper modelMapper, Configuration configuration, QuartzSchedulerService quartzSchedulerService){
+    public QuartzJobInfoServiceImpl(QuartzJobInfoRepository quartzJobInfoRepository, ModelMapper modelMapper, Configuration configuration, ServerService serverService, QuartzSchedulerService quartzSchedulerService){
         this.quartzJobInfoRepository = quartzJobInfoRepository;
         this.modelMapper = modelMapper;
         this.configuration = configuration;
+        this.serverService = serverService;
         this.quartzSchedulerService = quartzSchedulerService;
     }
 
@@ -44,16 +41,6 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
     @Override
     public JobInfoResponse saveQuartzJob(JobInfo jobInfo) {
         try{
-            Util.checkRequiredField("fileExtension", jobInfo.getFileExtension());
-            Util.checkRequiredField("sourceHost", jobInfo.getSourceHost());
-            Util.checkRequiredField("sourceUser", jobInfo.getSourceUser());
-            Util.checkRequiredFile("sourceMultipartFile", jobInfo.getSourceMultipartFile());
-            Util.checkRequiredField("destinationHost", jobInfo.getDestinationHost());
-            Util.checkRequiredField("destinationUser", jobInfo.getDestinationUser());
-            Util.checkRequiredFile("destinationMultipartFile", jobInfo.getDestinationMultipartFile());
-
-            String sourceFileName = uploadFileToLocal(jobInfo.getSourceMultipartFile());
-            String destinationFileName = uploadFileToLocal(jobInfo.getDestinationMultipartFile());
             String groupId = UUID.randomUUID().toString();
 
             QuartzJobInfo quartzJobInfo = null;
@@ -61,15 +48,16 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
             for (PathConfiguration path : jobInfo.getPaths()){
                 quartzJobInfo = new QuartzJobInfo();
                 String jobKey = UUID.randomUUID().toString();
-                BeanUtils.copyProperties(jobInfo, quartzJobInfo);
-                quartzJobInfo.setSourcePath(path.getSourcePath());
-                quartzJobInfo.setSourceFileName(sourceFileName);
-                quartzJobInfo.setDestinationPath(path.getDestinationPath());
-                quartzJobInfo.setDestinationFileName(destinationFileName);
-                quartzJobInfo.setCreatedBy(System.getProperty("user.home"));
-                quartzJobInfo.setExecutedAt(Calendar.getInstance().getTime());
+
                 quartzJobInfo.setJobKey(jobKey);
                 quartzJobInfo.setJobGroup(groupId);
+                quartzJobInfo.setFileExtension(path.getFileExtension());
+                quartzJobInfo.setSourceServer(serverService.findById(jobInfo.getSourceServerId()));
+                quartzJobInfo.setSourcePath(path.getSourcePath());
+                quartzJobInfo.setDestinationServer(serverService.findById(path.getDestinationServerId()));
+                quartzJobInfo.setDestinationPath(path.getDestinationPath());
+                quartzJobInfo.setCreatedBy(System.getProperty("user.home"));
+                quartzJobInfo.setExecutedAt(Calendar.getInstance().getTime());
                 quartzSchedulerService.saveJob(quartzJobInfo);
                 quartzJobInfoRepository.save(quartzJobInfo);
             }
@@ -105,24 +93,6 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
         return new StringBuilder("Connection").append(" : ").append(remoteHost).toString();
     }
 
-    private String generateFileName(String fileName) {
-        String extension = fileName.substring(fileName.lastIndexOf('.'));
-        String uniqueId = UUID.randomUUID().toString();
-        return uniqueId + extension;
-    }
-
-    private String uploadFileToLocal(MultipartFile multipartFile) throws Exception {
-
-        String fileName = generateFileName(multipartFile.getOriginalFilename());;
-        Path path = Paths.get(configuration.getSecureFileLocation(), fileName);
-
-        if(!Files.exists(path.getParent())){
-            Files.createDirectory(path.getParent());
-        }
-
-        multipartFile.transferTo(path);
-        return path.toAbsolutePath().toString();
-    }
 
     @Override
     public JobInfo getQuartzJobInfoById(int id) {

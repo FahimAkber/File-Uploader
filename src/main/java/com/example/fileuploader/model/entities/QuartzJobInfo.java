@@ -16,16 +16,18 @@ public class QuartzJobInfo extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
     private String jobKey;
-    private String fileExtension;
-    private String sourceHost;
-    private int sourcePort;
-    private String sourceUser;
-    private String sourceFileName;
-    private String sourcePath;
-    private String destinationHost;
-    private int destinationPort;
-    private String destinationUser;
-    private String destinationFileName;
-    private String destinationPath;
     private String jobGroup;
+    private String fileExtension;
+
+    @OneToOne
+    @JoinColumn(name = "source_server")
+    private Server sourceServer;
+
+    private String sourcePath;
+
+    @OneToOne
+    @JoinColumn(name = "destination_server")
+    private Server destinationServer;
+
+    private String destinationPath;
 }

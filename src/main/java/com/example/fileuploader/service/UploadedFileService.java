@@ -11,6 +11,6 @@ public interface UploadedFileService {
     List<UploadedFileInfo> getFiles();
     List<String> getCheckedFiles(List<String> fileNames);
 
-    Map<String, String[]> getKeyWiseFileByStatus(String status);
+    List<UploadedFileInfo> getFilesByStatusAndCriteria(String status);
     void updateStatusOfFile(String fileName, String status);
 }
