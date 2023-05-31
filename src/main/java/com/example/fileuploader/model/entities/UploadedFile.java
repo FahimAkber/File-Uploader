@@ -19,10 +19,24 @@ public class UploadedFile {
     private int id;
     @Column(name = "file_name")
     private String fileName;
+
+    @Column(name = "source_host")
+    private String sourceHost;
+    @Column(name = "source_path")
+    private String sourcePath;
+    @Column(name = "file_creation_date")
+    private Date fileCreationDate;
+    @Column(name = "source_file_size")
+    private byte sourceFileSize;
+    @Column(name = "local_action_date")
+    private Date localActionDate;
     @Column(name = "destination_host")
     private String destinationHost;
     @Column(name = "destination_path")
     private String destinationPath;
+    @Column(name = "destination_file_size")
+    private byte destinationFileSize;
+    private String description;
     private String status;
     @Column(name = "uploaded_date")
     private LocalDate uploadedDate;

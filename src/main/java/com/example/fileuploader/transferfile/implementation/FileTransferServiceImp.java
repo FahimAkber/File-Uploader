@@ -95,16 +95,20 @@ public class FileTransferServiceImp implements FileTransferService {
                 channelSftp = createChannelSftp(session);
                 String concatLocalPath = localFile.getPath();
                 channelSftp.cd(jobInfo.getSourcePath());
-                Vector<ChannelSftp.LsEntry> list = channelSftp.ls(jobInfo.getSourcePath().concat("/*").concat(jobInfo.getFileExtension()));
+                List<String> fileExtensions = Arrays.asList(jobInfo.getFileExtension().split(","));
 
-                List<String> fileNames = list.stream().map(ChannelSftp.LsEntry::getFilename).collect(Collectors.toList());
-                List<String> checkedFiles = fileService.getCheckedFiles(fileNames);
+                for(String extension : fileExtensions){
+                    Vector<ChannelSftp.LsEntry> list = channelSftp.ls(jobInfo.getSourcePath().concat("/*").concat(".").concat(extension));
+                    List<String> fileNames = list.stream().map(ChannelSftp.LsEntry::getFilename).collect(Collectors.toList());
+                    List<String> checkedFiles = fileService.getCheckedFiles(fileNames);
 
-                for(ChannelSftp.LsEntry entry : list){
-                    if(!checkedFiles.contains(entry.getFilename())){
-                        uploadFileToLocalDestination(entry.getFilename(), concatLocalPath, channelSftp, jobInfo.getDestinationServer().getHost(), jobInfo.getDestinationPath());
+                    for(ChannelSftp.LsEntry entry : list){
+                        if(!checkedFiles.contains(entry.getFilename())){
+                            uploadFileToLocalDestination(entry.getFilename(), concatLocalPath, channelSftp, jobInfo.getDestinationServer().getHost(), jobInfo.getDestinationPath());
+                        }
                     }
                 }
+
             } catch ( SftpException | NullPointerException e) {
                 throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             } catch (FileUploaderException exception){
