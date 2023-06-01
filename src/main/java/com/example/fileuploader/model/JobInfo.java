@@ -15,7 +15,14 @@ import java.util.List;
 public class JobInfo implements Serializable {
     @NonNull
     private Long  sourceServerId;
-    private List<PathConfiguration> paths;
+    @NonNull
+    private String sourcePath;
+    @NonNull
+    private String fileExtension;
+    @NonNull
+    private Long destinationServerId;
+    @NonNull
+    private String destinationPath;
 }
 
 

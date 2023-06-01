@@ -104,7 +104,7 @@ public class FileTransferServiceImp implements FileTransferService {
 
                     for(ChannelSftp.LsEntry entry : list){
                         if(!checkedFiles.contains(entry.getFilename())){
-                            uploadFileToLocalDestination(entry.getFilename(), concatLocalPath, channelSftp, jobInfo.getDestinationServer().getHost(), jobInfo.getDestinationPath());
+                            uploadFileToLocalDestination(entry.getFilename(), concatLocalPath, channelSftp, jobInfo.getDestinationServer(), jobInfo.getDestinationPath());
                         }
                     }
                 }
@@ -249,13 +249,38 @@ public class FileTransferServiceImp implements FileTransferService {
             throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    private void uploadFileToLocalDestination(String fileName, String localPath, ChannelSftp channelSftp, String destinationHost, String destinationPath) throws SftpException {
+    private void uploadFileToLocalDestination(String fileName, String localPath, ChannelSftp channelSftp, Server destinationServer, String destinationPath) throws SftpException {
         LocalDateTime startTime = LocalDateTime.now();
         channelSftp.get(fileName, localPath);
         LocalDateTime endTime = LocalDateTime.now();
         Duration duration = Duration.between(startTime, endTime);
-        fileService.save(new UploadedFile(fileName, destinationHost, destinationPath, Status.RECEIVED.value, endTime.toLocalDate()));
-        LoggerFactory.getLogger(LOGGER_NAME).info("Successfully imported inward File: {}, start at: {}, end at: {}, total time: {}", fileName, startTime.toString(), endTime.toString(), duration.getSeconds());
+        fileService.save(new UploadedFile(fileName, destinationServer.getHost(), destinationPath, Status.RECEIVED.value, endTime.toLocalDate()));
+//        LoggerFactory.getLogger(LOGGER_NAME).info("Successfully imported to local - File: {}, total time to fetch: {}", fileName, duration.getSeconds());
+        Session senderSession = null;
+        ChannelSftp senderChannelSftp = null;
+
+        try{
+            senderSession = createSession(destinationServer.getUser(), destinationServer.getHost(), destinationServer.getPort(), destinationServer.getSecureFileName(), destinationServer.getPassword());
+            senderChannelSftp = createChannelSftp(senderSession);
+            File file = new File(localPath, fileName);
+            if(file.exists()){
+                LocalDateTime startTimeForDestination = LocalDateTime.now();
+                senderChannelSftp.put(file.getAbsolutePath(), destinationPath);
+                fileService.updateStatusOfFile(fileName, Status.SENT.value);
+                LocalDateTime endTimeForDestination = LocalDateTime.now();
+                Duration durationForDestination = Duration.between(startTimeForDestination, endTimeForDestination);
+                LoggerFactory.getLogger(LOGGER_NAME).info("Successfully imported to local - File: {}, total time to fetch: {} and total time to send: {}", fileName, duration.getSeconds(), durationForDestination.getSeconds());
+//                LoggerFactory.getLogger(LOGGER_NAME).info("Successfully imported to destination - File: {}, total time to send: {}", fileName, durationForDestination.getSeconds());
+
+            }else{
+                // File received but not found in local storage.
+            }
+        }catch (Exception exception){
+
+        }finally {
+            destroyConnection(senderSession, senderChannelSftp);
+        }
+
     }
     private File createDirIfNotExist(String rootPath){
         File file = new File(rootPath);

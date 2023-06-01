@@ -39,17 +39,8 @@ public class FileTransferController {
 
     @PostMapping("schedule-file")
     public ResponseEntity<Object> schedulingFile(@RequestBody SchedulerRequest schedulerRequest){
-        List<QuartzJobInfo> jobs = quartzJobInfoService.findJobInfoByGroupId(schedulerRequest.getJobGroupId());
-        int totalInterval = schedulerRequest.getTotalInterval();
-        int frequency = schedulerRequest.getFrequency();
-        Date startAt = schedulerRequest.getStartAt();
-
-        for(QuartzJobInfo job : jobs){
-            JobKey key = new JobKey(job.getJobKey());
-            JobDetail jobDetail = quartzSchedulerService.getJobByKey(key);
-            quartzSchedulerService.saveTrigger(jobDetail, totalInterval, frequency, startAt);
-        }
-
+        JobDetail jobDetail = quartzSchedulerService.getJobByKey(new JobKey(schedulerRequest.getJobKey()));
+        quartzSchedulerService.saveTrigger(jobDetail, schedulerRequest.getTotalInterval(), schedulerRequest.getFrequency(), schedulerRequest.getStartAt());
 
         return ResponseEntity.ok("Successfully schedule the job");
     }

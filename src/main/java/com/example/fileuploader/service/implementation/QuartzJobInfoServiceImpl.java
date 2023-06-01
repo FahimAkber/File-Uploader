@@ -41,44 +41,37 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
     @Override
     public JobInfoResponse saveQuartzJob(JobInfo jobInfo) {
         try{
-            String groupId = UUID.randomUUID().toString();
-
-            QuartzJobInfo quartzJobInfo = null;
-
-            for (PathConfiguration path : jobInfo.getPaths()){
-                quartzJobInfo = new QuartzJobInfo();
-                String jobKey = UUID.randomUUID().toString();
-
-                quartzJobInfo.setJobKey(jobKey);
-                quartzJobInfo.setJobGroup(groupId);
-                quartzJobInfo.setFileExtension(path.getFileExtension());
-                quartzJobInfo.setSourceServer(serverService.findById(jobInfo.getSourceServerId()));
-                quartzJobInfo.setSourcePath(path.getSourcePath());
-                quartzJobInfo.setDestinationServer(serverService.findById(path.getDestinationServerId()));
-                quartzJobInfo.setDestinationPath(path.getDestinationPath());
-                quartzJobInfo.setCreatedBy(System.getProperty("user.home"));
-                quartzJobInfo.setExecutedAt(Calendar.getInstance().getTime());
-                quartzSchedulerService.saveJob(quartzJobInfo);
-                quartzJobInfoRepository.save(quartzJobInfo);
+            //TODO: NEED CHECK IF THE JOB GROUP ALREADY EXIST
+            QuartzJobInfo savedJobInfo = quartzJobInfoRepository.findBySourceAndDestination(jobInfo.getSourceServerId(), jobInfo.getSourcePath(), jobInfo.getDestinationServerId(), jobInfo.getDestinationPath());
+            if(savedJobInfo != null){
+                throw new Exception("Already configured this configuration: Source: "
+                        + jobInfo.getSourceServerId() + "/"
+                        + jobInfo.getSourcePath() + " to Destination: "
+                        + jobInfo.getDestinationServerId() + "/"
+                        + jobInfo.getDestinationPath());
             }
 
-            //TODO: NEED CHECK IF THE JOB GROUP ALREADY EXIST
+            QuartzJobInfo quartzJobInfo = new QuartzJobInfo();
+            String jobKey = UUID.randomUUID().toString();
 
-            return new JobInfoResponse(groupId);
+            quartzJobInfo.setJobKey(jobKey);
+            quartzJobInfo.setFileExtension(jobInfo.getFileExtension());
+            quartzJobInfo.setSourceServer(serverService.findById(jobInfo.getSourceServerId()));
+            quartzJobInfo.setSourcePath(jobInfo.getSourcePath());
+            quartzJobInfo.setDestinationServer(serverService.findById(jobInfo.getDestinationServerId()));
+            quartzJobInfo.setDestinationPath(jobInfo.getDestinationPath());
+            quartzJobInfo.setCreatedBy(System.getProperty("user.home"));
+            quartzJobInfo.setExecutedAt(Calendar.getInstance().getTime());
+            quartzSchedulerService.saveJob(quartzJobInfo);
+            quartzJobInfoRepository.save(quartzJobInfo);
+
+            return new JobInfoResponse(jobKey);
 
         }catch (Exception exception){
             throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
-    @Override
-    public List<QuartzJobInfo> findJobInfoByGroupId(String groupId) {
-        try{
-            return quartzJobInfoRepository.findByJobGroup(groupId);
-        }catch (Exception exception){
-            throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-    }
 
     @Override
     public QuartzJobInfo findJobInfoByJobKey(String jobKey) {
@@ -104,12 +97,8 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
     }
 
     @Override
-    public Map<String, List<QuartzJobInfo>> getQuartzJobInfos() {
-        List<QuartzJobInfo> jobInfos = quartzJobInfoRepository.findAll();
-        return convertedList(jobInfos);
+    public List<QuartzJobInfo> getQuartzJobInfos() {
+        return  quartzJobInfoRepository.findAll();
     }
 
-    private Map<String, List<QuartzJobInfo>> convertedList(List<QuartzJobInfo> jobInfos){
-        return jobInfos.stream().collect(Collectors.groupingBy(QuartzJobInfo::getJobGroup));
-    }
 }

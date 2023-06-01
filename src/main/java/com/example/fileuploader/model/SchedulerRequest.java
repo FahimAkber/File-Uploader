@@ -10,7 +10,7 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SchedulerRequest {
-    private String jobGroupId;
+    private String jobKey;
     private int totalInterval;
     private int frequency;
     private Date startAt;

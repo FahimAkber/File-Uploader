@@ -16,7 +16,6 @@ public class QuartzJobInfo extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
     private String jobKey;
-    private String jobGroup;
     private String fileExtension;
 
     @OneToOne
