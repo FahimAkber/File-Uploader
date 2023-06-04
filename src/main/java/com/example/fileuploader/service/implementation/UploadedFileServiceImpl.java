@@ -40,8 +40,8 @@ public class UploadedFileServiceImpl implements UploadedFileService {
     }
 
     @Override
-    public List<String> getCheckedFiles(List<String> fileNames) {
-        return uploadedFileRepository.findAllByFileNameList(fileNames);
+    public List<String> getCheckedFiles(List<String> fileNames, String sourceHost, String sourcePath, String destinationHost, String destinationPath) {
+        return uploadedFileRepository.findAllByFileNameList(fileNames, sourceHost, sourcePath, destinationHost, destinationPath);
     }
 
     @Override
@@ -65,9 +65,10 @@ public class UploadedFileServiceImpl implements UploadedFileService {
     }
 
     @Override
-    public void updateStatusOfFile(String fileName, String status) {
+    public void updateStatusOfFile(String fileName, String status, Date updatedDate) {
         try {
             UploadedFile uploadedFile = uploadedFileRepository.findByFileName(fileName);
+            uploadedFile.setDestinationUploadedDate(updatedDate);
             uploadedFile.setStatus(status);
             uploadedFileRepository.save(uploadedFile);
         }catch (Exception exception){

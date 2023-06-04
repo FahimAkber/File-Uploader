@@ -4,7 +4,6 @@ import com.example.fileuploader.model.JobInfo;
 import com.example.fileuploader.model.JobRequest;
 import com.example.fileuploader.model.SchedulerRequest;
 import com.example.fileuploader.model.ServerInfo;
-import com.example.fileuploader.model.entities.QuartzJobInfo;
 import com.example.fileuploader.service.QuartzJobInfoService;
 import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.quartzscheduler.QuartzSchedulerService;
@@ -27,13 +26,11 @@ public class FileTransferController {
 
     private final QuartzJobInfoService quartzJobInfoService;
     private final QuartzSchedulerService quartzSchedulerService;
-    private final FileTransferService fileTransferService;
     private final ServerService serverService;
 
-    public FileTransferController(QuartzJobInfoService quartzJobInfoService, QuartzSchedulerService quartzSchedulerService, FileTransferService fileTransferService, ServerService serverService) {
+    public FileTransferController(QuartzJobInfoService quartzJobInfoService, QuartzSchedulerService quartzSchedulerService, ServerService serverService) {
         this.quartzJobInfoService = quartzJobInfoService;
         this.quartzSchedulerService = quartzSchedulerService;
-        this.fileTransferService = fileTransferService;
         this.serverService = serverService;
     }
 

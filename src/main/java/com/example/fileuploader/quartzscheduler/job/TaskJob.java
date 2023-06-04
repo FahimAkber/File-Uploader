@@ -22,6 +22,7 @@ public class TaskJob implements Job {
         try{
             JobDataMap map = jobExecutionContext.getMergedJobDataMap();
             QuartzJobInfo jobInfo = (QuartzJobInfo) map.get("jobInfo");
+
             if(jobInfo != null){
                 fileTransferService.getFiles(jobInfo);
             }else{

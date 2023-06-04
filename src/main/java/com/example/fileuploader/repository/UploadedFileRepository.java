@@ -14,8 +14,8 @@ import java.util.Map;
 
 @Repository
 public interface UploadedFileRepository extends JpaRepository<UploadedFile, Integer> {
-    @Query("SELECT UF.fileName FROM UploadedFile AS UF where UF.fileName IN :fileNames")
-    List<String> findAllByFileNameList(@Param("fileNames") List<String> fileNames);
+    @Query("SELECT UF.fileName FROM UploadedFile AS UF where UF.sourceHost = :sourceHost and UF.sourcePath = :sourcePath and UF.destinationHost = :destinationHost and UF.destinationPath = :destinationPath and UF.fileName IN :fileNames")
+    List<String> findAllByFileNameList(@Param("fileNames") List<String> fileNames, @Param("sourceHost") String sourceHost, @Param("sourcePath") String sourcePath, @Param("destinationHost") String destinationHost, @Param("destinationPath") String destinationPath);
 
     @Query(value = "SELECT destination_host as destinationHost, destination_path as destinationPath, GROUP_CONCAT(file_name) as fileName FROM uploaded_file WHERE status = :status GROUP BY destination_host, destination_path", nativeQuery = true)
     List<Object[]> findByStatusAndCriteria(@Param("status") String status);
