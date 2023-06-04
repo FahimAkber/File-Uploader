@@ -2,26 +2,19 @@ package com.example.fileuploader.transferfile.implementation;
 
 import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.model.Status;
-import com.example.fileuploader.model.UploadedFileInfo;
 import com.example.fileuploader.model.entities.QuartzJobInfo;
 import com.example.fileuploader.model.entities.Server;
 import com.example.fileuploader.model.entities.UploadedFile;
-import com.example.fileuploader.service.QuartzJobInfoService;
-import com.example.fileuploader.service.ServerService;
 import com.example.fileuploader.service.UploadedFileService;
 import com.example.fileuploader.transferfile.FileTransferService;
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.jcraft.jsch.*;
-import com.example.fileuploader.configuration.Partition;
 import com.example.fileuploader.model.Configuration;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.time.temporal.Temporal;
 import java.util.*;
 import java.util.stream.Collectors;
