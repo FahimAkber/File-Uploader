@@ -1,6 +1,8 @@
 package com.example.fileuploader.util;
 
 import com.example.fileuploader.exceptions.FileUploaderException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,5 +19,10 @@ public class Util {
         }else if(file.getSize() > 10240){
             throw new Exception(fileName + "is too long.");
         }
+    }
+    public static Pageable getPageableObject(Integer pageNo, Integer pageSize){
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
+
+        return pageable;
     }
 }

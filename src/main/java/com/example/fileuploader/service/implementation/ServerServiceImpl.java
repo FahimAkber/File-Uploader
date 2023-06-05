@@ -4,6 +4,7 @@ import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.model.Configuration;
 import com.example.fileuploader.model.entities.Server;
 import com.example.fileuploader.model.ServerInfo;
+import com.example.fileuploader.model.response.MessageResponse;
 import com.example.fileuploader.model.response.ServerInfoResponse;
 import com.example.fileuploader.repository.ServerRepository;
 import com.example.fileuploader.service.ServerService;
@@ -38,30 +39,37 @@ public class ServerServiceImpl implements ServerService {
         try {
             Util.checkRequiredField("Host", serverInfo.getHost());
             Util.checkRequiredField("User", serverInfo.getUser());
-            if((serverInfo.getPassword() == null
-                    || serverInfo.getPassword().trim().isEmpty())
-                    && (serverInfo.getSecureFile() == null
-                    || serverInfo.getSecureFile().getSize() <= 0)){
-                throw new Exception("Security Credential Required");
+            Server findServerByHost = serverRepository.findByHost(serverInfo.getHost());
+            if(findServerByHost != null){
+                throw new Exception("Server already configured.");
             }
-            Server server = new Server();
-            BeanUtils.copyProperties(serverInfo, server);
-
-            if(serverInfo.getPassword() == null || serverInfo.getPassword().trim().isEmpty()){
-                String secureFile = uploadFileToLocal(serverInfo.getSecureFile());
-                server.setSecureFileName(secureFile);
-            }
-
-            return serverRepository.save(server);
+            return serverRepository.save(serverConfiguration(serverInfo));
         } catch (Exception e) {
             throw new FileUploaderException(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+    private Server serverConfiguration(ServerInfo serverInfo) throws Exception{
+        if((serverInfo.getPassword() == null
+                || serverInfo.getPassword().trim().isEmpty())
+                && (serverInfo.getSecureFile() == null
+                || serverInfo.getSecureFile().getSize() <= 0)){
+            throw new Exception("Security Credential Required");
+        }
+
+        Server server = new Server();
+        BeanUtils.copyProperties(serverInfo, server);
+
+        if(serverInfo.getPassword() == null || serverInfo.getPassword().trim().isEmpty()){
+            String secureFile = uploadFileToLocal(serverInfo.getSecureFile());
+            server.setSecureFileName(secureFile);
+        }
+        return server;
+    }
 
     @Override
-    public List<ServerInfoResponse> getServerInfos() {
+    public List<ServerInfoResponse> getServerInfos(Integer pageNo, Integer pageSize) {
         try{
-            return serverRepository.findAll().stream().map(server -> new ServerInfoResponse(server.getId(), server.getHost(), server.getPort(), server.getUser(), server.getSecureFileName())).collect(Collectors.toList());
+            return serverRepository.findAll(Util.getPageableObject(pageNo, pageSize)).stream().map(server -> new ServerInfoResponse(server.getId(), server.getHost(), server.getPort(), server.getUser())).collect(Collectors.toList());
         }catch (Exception exception){
             throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -80,6 +88,37 @@ public class ServerServiceImpl implements ServerService {
     @Override
     public Server findByHost(String host) {
         return serverRepository.findByHost(host);
+    }
+
+    @Override
+    public Server editServerInfo(Long id, ServerInfo serverInfo) {
+        try{
+            Server server = findById(id);
+
+            Util.checkRequiredField("Host", serverInfo.getHost());
+            Util.checkRequiredField("User", serverInfo.getUser());
+
+
+            if(!server.getHost().equals(serverInfo.getHost())){
+                throw new Exception("Can't change host");
+            }
+            Server configuredServer = serverConfiguration(serverInfo);
+            configuredServer.setId(server.getId());
+
+            return serverRepository.save(configuredServer);
+        }catch (Exception exception){
+            throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Override
+    public MessageResponse deleteServerInfo(Long id) {
+        try{
+            serverRepository.delete(findById(id));
+            return new MessageResponse("Server deleted successfully.");
+        }catch (Exception exception){
+            throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
     private String generateFileName(String fileName) {

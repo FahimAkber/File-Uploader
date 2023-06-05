@@ -7,10 +7,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ServerInfoResponse {
-    public Long id;
-    private String host;
-    private int port;
-    private String user;
-//    private String secureFileName;
+public class MessageResponse {
+    private String message;
 }
