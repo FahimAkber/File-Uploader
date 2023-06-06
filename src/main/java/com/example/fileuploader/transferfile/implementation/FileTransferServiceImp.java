@@ -14,10 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.time.Duration;
-import java.time.temporal.Temporal;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class FileTransferServiceImp implements FileTransferService {
@@ -98,35 +95,25 @@ public class FileTransferServiceImp implements FileTransferService {
     public void getFiles(QuartzJobInfo jobInfo){
         if(!jobQueue.contains(jobInfo.getJobKey())){
             jobQueue.add(jobInfo.getJobKey());
-            Session session = null, senderSession = null;
-            ChannelSftp channelSftp = null, senderChannelSftp = null;
+            Session session = null;
+            ChannelSftp channelSftp = null;
             Server sourceServer = jobInfo.getSourceServer(), destinationServer = jobInfo.getDestinationServer();
+            String sourcePath = jobInfo.getSourcePath(), localBasePath = configuration.getLocalFileLocation().concat("/").concat(sourceServer.getHost()).concat("/").concat(jobInfo.getSourcePath()).concat("/");
 
             try {
-                File localPath = createDirIfNotExist(configuration.getLocalFileLocation().concat("/").concat(sourceServer.getHost()).concat("/").concat(jobInfo.getSourcePath()));
                 session = createSession(sourceServer.getUser(), sourceServer.getHost(), sourceServer.getPort(), sourceServer.getSecureFileName(), sourceServer.getPassword());
-                senderSession = createSession(destinationServer.getUser(), destinationServer.getHost(), destinationServer.getPort(), destinationServer.getSecureFileName(), destinationServer.getPassword());
                 channelSftp = createChannelSftp(session);
-                senderChannelSftp = createChannelSftp(senderSession);
+                channelSftp.cd(sourcePath);
 
-                String concatLocalPath = localPath.getPath();
-                channelSftp.cd(jobInfo.getSourcePath());
-                List<String> fileExtensions = Arrays.asList(jobInfo.getFileExtension().split(","));
+                Vector<ChannelSftp.LsEntry> childFolders = channelSftp.ls("/*");
+                for (ChannelSftp.LsEntry folder : childFolders){
+                    channelSftp.cd(sourcePath.concat("/").concat(folder.getFilename() + "/"));
+                    Vector<ChannelSftp.LsEntry> files = channelSftp.ls(jobInfo.getFileExtension());
+                    ChannelSftp.LsEntry latestCompletedFile = files.stream().sorted(Comparator.reverseOrder()).skip(1).findFirst().orElse(null);
+                    File localPath = createDirIfNotExist(localBasePath.concat(folder.getFilename()));
 
-                if(fileExtensions.isEmpty()){
-                    fileExtensions.add("*");
-                }
-
-                for(String extension : fileExtensions){
-                    Vector<ChannelSftp.LsEntry> list = channelSftp.ls(jobInfo.getSourcePath().concat("/*").concat(".").concat(extension));
-                    List<String> fileNames = list.stream().map(ChannelSftp.LsEntry::getFilename).collect(Collectors.toList());
-                    //Check Host and Path wise files
-                    List<String> checkedFiles = fileService.getCheckedFiles(fileNames, sourceServer.getHost(), jobInfo.getSourcePath(), destinationServer.getHost(), jobInfo.getDestinationPath());
-
-                    for(ChannelSftp.LsEntry entry : list){
-                        if(!checkedFiles.contains(entry.getFilename())){
-                            uploadFileToLocalDestination(entry.getFilename(), entry.getAttrs().getSize(), sourceServer.getHost(), jobInfo.getSourcePath(), concatLocalPath, destinationServer.getHost(), jobInfo.getDestinationPath(), channelSftp, senderSession, senderChannelSftp);
-                        }
+                    if(latestCompletedFile != null){
+                        uploadFileToLocalDestination(latestCompletedFile.getFilename(), latestCompletedFile.getAttrs().getSize(), sourceServer.getHost(), sourcePath, localPath.getAbsolutePath(), destinationServer.getHost(), jobInfo.getDestinationPath(), channelSftp);
                     }
                 }
             } catch (FileUploaderException exception){
@@ -142,23 +129,19 @@ public class FileTransferServiceImp implements FileTransferService {
             LoggerFactory.getLogger(LOGGER_NAME).info("Previous job: {} is running.", jobInfo.getJobKey());
         }
     }
-
-    private void uploadFileToLocalDestination(String fileName, Long actualSize, String sourceHost, String sourcePath, String localPath, String destinationHost, String destinationPath, ChannelSftp channelSftp, Session senderSession, ChannelSftp senderChannelSftp) throws Exception {
+    private void uploadFileToLocalDestination(String fileName, Long actualSize, String sourceHost, String sourcePath, String localPath, String destinationHost, String destinationPath, ChannelSftp channelSftp) throws Exception {
         try {
             File localUploadedFile = new File(localPath, fileName);
-            Calendar calendar = Calendar.getInstance();
-            Duration duration = null;
             if(!localUploadedFile.exists()){
-                Date receivingStart = calendar.getTime();
                 channelSftp.get(fileName, localPath);
-                Date receivingCompleted = calendar.getTime();
-                duration = Duration.between((Temporal) receivingStart, (Temporal) receivingCompleted);
+                Date receivingCompleted = Calendar.getInstance().getTime();
                 Long uploadedFileSize =  localUploadedFile.length();
                 if(!localUploadedFile.exists()){
+                    //TODO: insert to error db
                     throw new Exception(fileName + " didn't fetch");
                 }
                 if(uploadedFileSize < actualSize){
-                    localUploadedFile.delete();
+                    //TODO: insert to error db
                     throw new Exception(fileName + " didn't fetch properly. Actual Size: "+ actualSize + " and Uploaded File Size: " + uploadedFileSize);
                 }
                 UploadedFile uploadedFile = new UploadedFile(fileName, sourceHost, sourcePath, actualSize, receivingCompleted, localPath, uploadedFileSize, destinationHost, destinationPath, Status.RECEIVED.value);
@@ -168,60 +151,12 @@ public class FileTransferServiceImp implements FileTransferService {
                 UploadedFile uploadedFile = new UploadedFile(fileName, sourceHost, sourcePath, actualSize, localPath, destinationHost, destinationPath, Status.RECEIVED.value, "File already exists in local path");
                 fileService.save(uploadedFile);
             }
-
-            Date sendingStart = calendar.getTime();
-            senderChannelSftp.put(localUploadedFile.getAbsolutePath(), destinationPath);
-            Date sendingCompleted = calendar.getTime();
-            Duration durationForDestination = Duration.between((Temporal) sendingStart, (Temporal) sendingCompleted);
-            fileService.updateStatusOfFile(fileName, Status.SENT.value, sendingCompleted);
-            LoggerFactory.getLogger(LOGGER_NAME).info("Successfully imported to local - File: {}, total time to fetch: {} and total time to send: {}", fileName, duration.getSeconds(), durationForDestination.getSeconds());
-
+            LoggerFactory.getLogger(LOGGER_NAME).info("Successfully imported to local - File: {}", fileName);
 
         } catch (Exception e) {
             throw new FileUploaderException(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
-    @Override
-    public void getTestFiles() {
-//        Session session = null;
-//        ChannelSftp channelSftp = null;
-//
-//        try {
-//            File localFile = new File("D:/Bin Files/");
-//            if(!localFile.exists()){
-//                localFile.mkdirs();
-//            }
-
-
-//            session = createSession("root", "103.36.101.99", 22, "D:/pem-key");
-//            channelSftp = createChannelSftp(session);
-//            String concatRemotePath = "/files/";
-//            String concatLocalPath = localFile.getPath();
-//            channelSftp.cd(concatRemotePath);
-//            Vector list = channelSftp.ls("*.bin");
-//
-//            Partition<ChannelSftp.LsEntry> partition = Partition.getPartitionInstance(list, 500);
-//           destroyConnection(session, channelSftp);
-//
-//            for (List<ChannelSftp.LsEntry> objects : partition) {
-//                FileThread fileThread = new FileThread(createSession("root", "103.36.101.99", 22), objects, concatLocalPath, concatRemotePath);
-//                Thread thread = new Thread(fileThread);
-//                thread.start();
-////                for(ChannelSftp.LsEntry entry : objects){
-////                    uploadFileToLocalDestination(entry, concatLocalPath, channelSftp);
-////                }
-//
-//            }
-//        } catch ( SftpException | NullPointerException e) {
-//            throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-//        } catch (FileUploaderException exception){
-//            throw exception;
-//        } finally {
-//            destroyConnection(session, channelSftp);
-//        }
-    }
-
     @Override
     public void setFiles() {
 //        List<UploadedFileInfo> filesByStatusAndCriteria = fileService.getFilesByStatusAndCriteria(Status.RECEIVED.value);
@@ -295,7 +230,5 @@ public class FileTransferServiceImp implements FileTransferService {
 //            }
 //        }
     }
-
-
 
 }

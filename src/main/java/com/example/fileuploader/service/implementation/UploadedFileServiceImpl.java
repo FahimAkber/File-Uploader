@@ -1,6 +1,5 @@
 package com.example.fileuploader.service.implementation;
 
-import com.example.fileuploader.model.KeyWiseValue;
 import com.example.fileuploader.model.entities.UploadedFile;
 import com.example.fileuploader.service.UploadedFileService;
 import com.example.fileuploader.model.UploadedFileInfo;
@@ -9,7 +8,6 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class UploadedFileServiceImpl implements UploadedFileService {

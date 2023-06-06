@@ -162,7 +162,7 @@ public class FileTransferController {
             channelSftp = (ChannelSftp) session.openChannel("sftp");
             channelSftp.connect();
             channelSftp.cd("/main_folder/");
-            Vector<ChannelSftp.LsEntry> ls = channelSftp.ls("/main_folder/sub_*");
+            Vector<ChannelSftp.LsEntry> ls = channelSftp.ls("/files/*");
             LoggerFactory.getLogger("Test Log").info("Iteration of folders start at: {}", startTime);
             for (ChannelSftp.LsEntry entry : ls){
                 LocalDateTime itemStart = LocalDateTime.now();

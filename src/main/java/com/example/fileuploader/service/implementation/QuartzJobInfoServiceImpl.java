@@ -1,7 +1,6 @@
 package com.example.fileuploader.service.implementation;
 
 import com.example.fileuploader.model.Configuration;
-import com.example.fileuploader.model.PathConfiguration;
 import com.example.fileuploader.model.entities.QuartzJobInfo;
 import com.example.fileuploader.model.response.JobInfoResponse;
 import com.example.fileuploader.quartzscheduler.QuartzSchedulerService;
@@ -41,9 +40,9 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
     @Override
     public JobInfoResponse saveQuartzJob(JobInfo jobInfo) {
         try{
-            //TODO: NEED CHECK IF THE JOB GROUP ALREADY EXIST
-            QuartzJobInfo savedJobInfo = quartzJobInfoRepository.findBySourceAndDestination(jobInfo.getSourceServerId(), jobInfo.getSourcePath(), jobInfo.getDestinationServerId(), jobInfo.getDestinationPath());
-            if(savedJobInfo != null){
+            QuartzJobInfo quartzJobInfo = null;
+            quartzJobInfo = quartzJobInfoRepository.findBySourceAndDestination(jobInfo.getSourceServerId(), jobInfo.getSourcePath(), jobInfo.getDestinationServerId(), jobInfo.getDestinationPath());
+            if(quartzJobInfo != null){
                 throw new Exception("Already configured this configuration: Source: "
                         + jobInfo.getSourceServerId() + "/"
                         + jobInfo.getSourcePath() + " to Destination: "
@@ -51,7 +50,7 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
                         + jobInfo.getDestinationPath());
             }
 
-            QuartzJobInfo quartzJobInfo = new QuartzJobInfo();
+            quartzJobInfo = new QuartzJobInfo();
             String jobKey = UUID.randomUUID().toString();
 
             quartzJobInfo.setJobKey(jobKey);

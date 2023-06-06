@@ -17,7 +17,6 @@ public class ServerController {
     public ServerController(ServerService serverService) {
         this.serverService = serverService;
     }
-
     @PostMapping(value = "/configurer", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<Object> configureServer(@RequestPart("serverInfo") ServerInfo serverInfo, @RequestPart("secureFile") MultipartFile secureFile) {
         HttpHeaders headers = new HttpHeaders();
@@ -25,14 +24,12 @@ public class ServerController {
         serverInfo.setSecureFile(secureFile);
         return new ResponseEntity<>(serverService.saveServerInfo(serverInfo), headers, HttpStatus.OK);
     }
-
     @GetMapping("/list")
     public ResponseEntity<Object> getServers(@RequestParam("page") Integer pageNo, @RequestParam("size") Integer pageSize) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         return new ResponseEntity<>(serverService.getServerInfos(pageNo, pageSize), headers, HttpStatus.OK);
     }
-
     @PutMapping(value = "/edit", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<Object> editServer(@RequestPart("id") Long id, @RequestPart("serverInfo") ServerInfo serverInfo, @RequestPart("secureFile") MultipartFile secureFile){
         HttpHeaders headers = new HttpHeaders();
@@ -41,7 +38,6 @@ public class ServerController {
 
         return new ResponseEntity<>(serverService.editServerInfo(id, serverInfo), headers, HttpStatus.OK);
     }
-
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Object> deleteServer(@PathVariable("id") Long id){
         HttpHeaders headers = new HttpHeaders();
@@ -50,7 +46,6 @@ public class ServerController {
         return new ResponseEntity<>(serverService.deleteServerInfo(id), headers, HttpStatus.OK);
 
     }
-
     @GetMapping("/search")
     public ResponseEntity<Object> findServerByHost(@RequestParam("host") String host){
         HttpHeaders headers = new HttpHeaders();
