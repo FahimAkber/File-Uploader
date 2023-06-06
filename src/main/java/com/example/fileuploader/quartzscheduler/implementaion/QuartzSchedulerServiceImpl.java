@@ -194,4 +194,15 @@ public class QuartzSchedulerServiceImpl implements QuartzSchedulerService {
 
         saveTrigger(jobDetail, totalInterval, frequency, startAt);
     }
+
+    @Override
+    public void deleteJob(JobKey jobKey) {
+        try {
+            if(scheduler.checkExists(jobKey)){
+                scheduler.deleteJob(jobKey);
+            }
+        } catch (Exception e) {
+            throw new FileUploaderException(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
 }

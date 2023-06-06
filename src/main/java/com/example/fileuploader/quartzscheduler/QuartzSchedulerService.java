@@ -17,4 +17,5 @@ public interface QuartzSchedulerService {
     void pauseJob(JobKey key);
     void resumeJob(JobKey key);
     void savePrivateJob(String jobType, int totalInterval, int frequency, Date startAt);
+    void deleteJob(JobKey jobKey);
 }

@@ -46,7 +46,7 @@ public class FileTransferController {
         this.serverService = serverService;
     }
 
-    @PostMapping("schedule-file")
+    @PostMapping("/schedule-file")
     public ResponseEntity<Object> schedulingFile(@RequestBody SchedulerRequest schedulerRequest) {
         JobDetail jobDetail = quartzSchedulerService.getJobByKey(new JobKey(schedulerRequest.getJobKey()));
         quartzSchedulerService.saveTrigger(jobDetail, schedulerRequest.getTotalInterval(), schedulerRequest.getFrequency(), schedulerRequest.getStartAt());
@@ -54,14 +54,19 @@ public class FileTransferController {
         return ResponseEntity.ok("Successfully schedule the job");
     }
 
-    @PostMapping(value = "save-job-info")
+    @PostMapping(value = "/save-job-info")
     public ResponseEntity<Object> saveJobInfo(@RequestBody JobInfo jobInfo) {
         return ResponseEntity.ok(quartzJobInfoService.saveQuartzJob(jobInfo));
     }
 
-    @GetMapping(value = "get-job-info")
-    public ResponseEntity<Object> getJobInfo() {
-        return ResponseEntity.ok(quartzJobInfoService.getQuartzJobInfos());
+    @GetMapping(value = "/get-job-info")
+    public ResponseEntity<Object> getJobInfo(@RequestParam("page") Integer pageNo, @RequestParam("size") Integer pageSize) {
+        return ResponseEntity.ok(quartzJobInfoService.getQuartzJobInfos(pageNo, pageSize));
+    }
+
+    @DeleteMapping("/job-info/delete/{jobKey}")
+    public ResponseEntity<Object> deleteJobInfo(@PathVariable("jobKey") String jobKey){
+        return ResponseEntity.ok(quartzJobInfoService.deleteJobInfo(jobKey));
     }
 
     @GetMapping("get-job/{jobKey}")

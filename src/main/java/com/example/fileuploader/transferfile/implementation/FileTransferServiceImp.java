@@ -23,6 +23,7 @@ public class FileTransferServiceImp implements FileTransferService {
     private Configuration configuration;
     private Queue<String> jobQueue;
     private static final String LOGGER_NAME = "File Uploader";
+    private static final Comparator<ChannelSftp.LsEntry> fileComparator = Comparator.reverseOrder();
 
     public FileTransferServiceImp(UploadedFileService fileService, Configuration configuration) {
         this.fileService = fileService;
@@ -103,13 +104,12 @@ public class FileTransferServiceImp implements FileTransferService {
             try {
                 session = createSession(sourceServer.getUser(), sourceServer.getHost(), sourceServer.getPort(), sourceServer.getSecureFileName(), sourceServer.getPassword());
                 channelSftp = createChannelSftp(session);
-                channelSftp.cd(sourcePath);
 
-                Vector<ChannelSftp.LsEntry> childFolders = channelSftp.ls("/*");
+                Vector<ChannelSftp.LsEntry> childFolders = channelSftp.ls(sourcePath+"/child_*");
                 for (ChannelSftp.LsEntry folder : childFolders){
                     channelSftp.cd(sourcePath.concat("/").concat(folder.getFilename() + "/"));
-                    Vector<ChannelSftp.LsEntry> files = channelSftp.ls(jobInfo.getFileExtension());
-                    ChannelSftp.LsEntry latestCompletedFile = files.stream().sorted(Comparator.reverseOrder()).skip(1).findFirst().orElse(null);
+                    Vector<ChannelSftp.LsEntry> files = channelSftp.ls("*."+jobInfo.getFileExtension());
+                    ChannelSftp.LsEntry latestCompletedFile = files.stream().sorted(fileComparator.reversed()).skip(1).findFirst().orElse(null);
                     File localPath = createDirIfNotExist(localBasePath.concat(folder.getFilename()));
 
                     if(latestCompletedFile != null){

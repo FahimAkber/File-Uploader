@@ -3,13 +3,16 @@ package com.example.fileuploader.service.implementation;
 import com.example.fileuploader.model.Configuration;
 import com.example.fileuploader.model.entities.QuartzJobInfo;
 import com.example.fileuploader.model.response.JobInfoResponse;
+import com.example.fileuploader.model.response.MessageResponse;
 import com.example.fileuploader.quartzscheduler.QuartzSchedulerService;
 import com.example.fileuploader.service.QuartzJobInfoService;
 import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.model.JobInfo;
 import com.example.fileuploader.repository.QuartzJobInfoRepository;
 import com.example.fileuploader.service.ServerService;
+import com.example.fileuploader.util.Util;
 import org.modelmapper.ModelMapper;
+import org.quartz.JobKey;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -96,8 +99,24 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
     }
 
     @Override
-    public List<QuartzJobInfo> getQuartzJobInfos() {
-        return  quartzJobInfoRepository.findAll();
+    public List<QuartzJobInfo> getQuartzJobInfos(Integer pageNo, Integer pageSize) {
+        return quartzJobInfoRepository
+                .findAll(Util.getPageableObject(pageNo, pageSize))
+                .stream()
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public MessageResponse deleteJobInfo(String jobKey) {
+        try{
+            QuartzJobInfo jobInfo = findJobInfoByJobKey(jobKey);
+            quartzSchedulerService.deleteJob(new JobKey(jobKey));
+            quartzJobInfoRepository.delete(jobInfo);
+
+            return new MessageResponse(jobKey.concat(" deleted."));
+        }catch(Exception exception){
+            throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
 }
