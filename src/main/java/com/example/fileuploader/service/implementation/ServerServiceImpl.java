@@ -4,12 +4,14 @@ import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.model.Configuration;
 import com.example.fileuploader.model.entities.Server;
 import com.example.fileuploader.model.ServerInfo;
+import com.example.fileuploader.model.response.CustomResponse;
 import com.example.fileuploader.model.response.MessageResponse;
 import com.example.fileuploader.model.response.ServerInfoResponse;
 import com.example.fileuploader.repository.ServerRepository;
 import com.example.fileuploader.service.ServerService;
 import com.example.fileuploader.util.Util;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -48,6 +50,7 @@ public class ServerServiceImpl implements ServerService {
             throw new FileUploaderException(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
     private Server serverConfiguration(ServerInfo serverInfo) throws Exception{
         if((serverInfo.getPassword() == null
                 || serverInfo.getPassword().trim().isEmpty())
@@ -67,10 +70,20 @@ public class ServerServiceImpl implements ServerService {
     }
 
     @Override
-    public List<ServerInfoResponse> getServerInfos(Integer pageNo, Integer pageSize) {
-        try{
-            return serverRepository.findAll(Util.getPageableObject(pageNo, pageSize)).stream().map(server -> new ServerInfoResponse(server.getId(), server.getHost(), server.getPort(), server.getUser())).collect(Collectors.toList());
-        }catch (Exception exception){
+    public CustomResponse getServerInfos(Integer pageNo, Integer pageSize) {
+        try {
+            Page<Server> serverList = serverRepository.findAll(Util.getPageableObject(pageNo, pageSize));
+            List<ServerInfoResponse> serverInfoList = serverList.stream()
+                    .map(server -> new ServerInfoResponse(server.getId(), server.getHost(), server.getPort(), server.getUser()))
+                    .collect(Collectors.toList());
+
+            return CustomResponse.builder()
+                    .serverInfos(serverInfoList)
+                    .totalPage(serverList.getTotalPages())
+                    .build();
+
+
+        } catch (Exception exception) {
             throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
@@ -92,7 +105,7 @@ public class ServerServiceImpl implements ServerService {
 
     @Override
     public Server editServerInfo(Long id, ServerInfo serverInfo) {
-        try{
+        try {
             Server server = findById(id);
 
             Util.checkRequiredField("Host", serverInfo.getHost());
@@ -106,7 +119,7 @@ public class ServerServiceImpl implements ServerService {
             configuredServer.setId(server.getId());
 
             return serverRepository.save(configuredServer);
-        }catch (Exception exception){
+        } catch (Exception exception) {
             throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
