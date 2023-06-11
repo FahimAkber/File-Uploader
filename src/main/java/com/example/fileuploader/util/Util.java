@@ -2,6 +2,10 @@ package com.example.fileuploader.util;
 
 import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.threadConfigurer.PoolInstance;
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -39,6 +43,59 @@ public class Util {
             return file;
         }catch (Exception exception){
             throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    public static Session createSession(String remoteUser, String remoteHost, int remotePort, String fileName, String password) {
+        Session session = null;
+        JSch jSch = new JSch();
+        try {
+            if(fileName != null && !fileName.trim().isEmpty()){
+                jSch.addIdentity(fileName);
+                session = jSch.getSession(remoteUser, remoteHost, remotePort);
+            }else{
+                session = jSch.getSession(remoteUser, remoteHost, remotePort);
+                session.setPassword(password);
+            }
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.setConfig("compression.s2c", "zlib,none");
+            session.setConfig("compression.c2s", "zlib,none");
+            session.setConfig("rcvbuf", "1048576"); // 1 MB
+            session.setConfig("sndbuf", "1048576");
+            session.setConfig("sftp.max_packet", "131072"); // Set maximum packet size to 131072 bytes (128 KB)
+
+            session.connect();
+        } catch (JSchException e) {
+            throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (NullPointerException e){
+            throw new FileUploaderException(e.getMessage(), HttpStatus.NOT_FOUND);
+        } catch(Exception exception){
+            throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+
+        return session;
+    }
+    public static ChannelSftp createChannelSftp(Session session) {
+        ChannelSftp channelSftp = null;
+        try {
+            channelSftp = (ChannelSftp) session.openChannel("sftp");
+            channelSftp.setBulkRequests(30);
+            channelSftp.connect();
+        } catch (JSchException | NullPointerException e) {
+            throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return channelSftp;
+    }
+    public static void destroyConnection(Session session, ChannelSftp channelSftp) {
+        try{
+            if(channelSftp != null){
+                channelSftp.disconnect();
+            }
+            if(session != null){
+                session.disconnect();
+            }
+        }catch (Exception e){
+            throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

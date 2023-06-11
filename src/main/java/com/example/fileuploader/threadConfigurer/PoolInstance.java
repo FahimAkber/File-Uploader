@@ -1,7 +1,9 @@
 package com.example.fileuploader.threadConfigurer;
 
+import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 public class PoolInstance {
     private ExecutorService executorService;
@@ -22,10 +24,14 @@ public class PoolInstance {
     public List<FileThread> getTasks(){
         return this.tasks;
     }
-    public void implementSingleInstance() {
-        for (FileThread task : getTasks()) {
-            executorService.execute(task);
+    public String implementSingleInstance() {
+        try {
+            executorService.invokeAll(tasks);
+
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
         executorService.shutdown();
+        return "thread implementation done";
     }
 }

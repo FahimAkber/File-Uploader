@@ -5,11 +5,11 @@ import com.example.fileuploader.model.Configuration;
 import com.example.fileuploader.model.entities.Server;
 import com.example.fileuploader.model.ServerInfo;
 import com.example.fileuploader.model.response.MessageResponse;
-import com.example.fileuploader.model.response.ServerInfoResponse;
 import com.example.fileuploader.repository.ServerRepository;
 import com.example.fileuploader.service.ServerService;
 import com.example.fileuploader.util.Util;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,11 +17,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class ServerServiceImpl implements ServerService {
@@ -67,9 +65,9 @@ public class ServerServiceImpl implements ServerService {
     }
 
     @Override
-    public List<ServerInfoResponse> getServerInfos(Integer pageNo, Integer pageSize) {
+    public Page<Server> getServerInfos(Integer pageNo, Integer pageSize) {
         try{
-            return serverRepository.findAll(Util.getPageableObject(pageNo, pageSize)).stream().map(server -> new ServerInfoResponse(server.getId(), server.getHost(), server.getPort(), server.getUser())).collect(Collectors.toList());
+            return serverRepository.findAll(Util.getPageableObject(pageNo, pageSize));
         }catch (Exception exception){
             throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }

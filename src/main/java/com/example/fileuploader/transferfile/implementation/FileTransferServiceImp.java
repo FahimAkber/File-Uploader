@@ -35,62 +35,6 @@ public class FileTransferServiceImp implements FileTransferService {
         this.configuration = configuration;
         jobQueue = new LinkedList<>();
     }
-    @Override
-    public Session createSession(String remoteUser, String remoteHost, int remotePort, String fileName, String password) {
-        Session session = null;
-        JSch jSch = new JSch();
-        try {
-            if(fileName != null && !fileName.trim().isEmpty()){
-                jSch.addIdentity(fileName);
-                session = jSch.getSession(remoteUser, remoteHost, remotePort);
-            }else{
-                session = jSch.getSession(remoteUser, remoteHost, remotePort);
-                session.setPassword(password);
-            }
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.setConfig("compression.s2c", "zlib,none");
-            session.setConfig("compression.c2s", "zlib,none");
-            session.setConfig("rcvbuf", "1048576"); // 1 MB
-            session.setConfig("sndbuf", "1048576");
-            session.setConfig("sftp.max_packet", "131072"); // Set maximum packet size to 131072 bytes (128 KB)
-
-            session.connect();
-        } catch (JSchException e) {
-            throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        } catch (NullPointerException e){
-            throw new FileUploaderException(e.getMessage(), HttpStatus.NOT_FOUND);
-        } catch(Exception exception){
-            throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-
-        return session;
-    }
-    @Override
-    public ChannelSftp createChannelSftp(Session session) {
-        ChannelSftp channelSftp = null;
-        try {
-            channelSftp = (ChannelSftp) session.openChannel("sftp");
-            channelSftp.setBulkRequests(30);
-            channelSftp.connect();
-        } catch (JSchException | NullPointerException e) {
-            throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-        return channelSftp;
-    }
-    @Override
-    public void destroyConnection(Session session, ChannelSftp channelSftp) {
-        try{
-            if(channelSftp != null){
-                channelSftp.disconnect();
-            }
-            if(session != null){
-                session.disconnect();
-            }
-        }catch (Exception e){
-            throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-    @Override
     public void getFiles(QuartzJobInfo jobInfo){
         Session session = null;
         ChannelSftp channelSftp = null;
@@ -98,32 +42,36 @@ public class FileTransferServiceImp implements FileTransferService {
         String sourcePath = jobInfo.getSourcePath(), localBasePath = configuration.getLocalFileLocation().concat("/").concat(sourceServer.getHost()).concat("/").concat(jobInfo.getSourcePath()).concat("/");
 
         try {
-            session = createSession(sourceServer.getUser(), sourceServer.getHost(), sourceServer.getPort(), sourceServer.getSecureFileName(), sourceServer.getPassword());
-            channelSftp = createChannelSftp(session);
+            session = Util.createSession(sourceServer.getUser(), sourceServer.getHost(), sourceServer.getPort(), sourceServer.getSecureFileName(), sourceServer.getPassword());
+            channelSftp = Util.createChannelSftp(session);
 
-            Vector<ChannelSftp.LsEntry> childFolders = channelSftp.ls(sourcePath+"/child_*");
+            Vector<ChannelSftp.LsEntry> childFolders = channelSftp.ls(sourcePath+"/*");
             LocalDateTime startTime = LocalDateTime.now();
 
-            Partition<ChannelSftp.LsEntry> partition = Partition.getPartitionInstance(childFolders, 5000);
+            Partition<ChannelSftp.LsEntry> partition = Partition.getPartitionInstance(childFolders, 500);
             List<FileThread> tasks = new ArrayList<>();
+            int i = 1;
+
             for(List<ChannelSftp.LsEntry> chunkFolder : partition){
-                tasks.add(new FileThread(channelSftp, chunkFolder, jobInfo.getJobKey(), sourceServer.getHost(), sourcePath, localBasePath, destinationServer.getHost(), jobInfo.getDestinationPath(), jobInfo.getFileExtension(), fileService));
+                tasks.add(new FileThread("Thread-"+ i++,chunkFolder, jobInfo.getJobKey(), sourceServer, sourcePath, localBasePath, destinationServer.getHost(), jobInfo.getDestinationPath(), jobInfo.getFileExtension(), fileService));
             }
 
             PoolInstance poolInstance = Util.poolInstance;
             poolInstance.setTasks(tasks);
-            poolInstance.implementSingleInstance();
+            String s = poolInstance.implementSingleInstance();
+            if(s != null){
+                LocalDateTime endTime = LocalDateTime.now();
+                Duration duration = Duration.between(startTime, endTime);
+                LoggerFactory.getLogger(LOGGER_NAME).info("job started at: {}, end at: {}, completed at: {}", startTime.toString(), endTime.toString(), duration.getSeconds());
 
-            LocalDateTime endTime = LocalDateTime.now();
-            Duration duration = Duration.between(startTime, endTime);
-            LoggerFactory.getLogger(LOGGER_NAME).info("job started at: {}, end at: {}, completed at: {}", startTime.toString(), endTime.toString(), duration.getSeconds());
+            }
+
         } catch (FileUploaderException exception){
             throw exception;
         } catch (Exception e) {
             throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         } finally {
-            jobQueue.remove(jobInfo.getJobKey());
-            destroyConnection(session, channelSftp);
+            Util.destroyConnection(session, channelSftp);
         }
     }
      @Override
