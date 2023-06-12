@@ -1,9 +1,12 @@
 package com.example.fileuploader.service.implementation;
 
+import com.example.fileuploader.model.LoginRequest;
 import com.example.fileuploader.model.UserInfo;
 import com.example.fileuploader.model.entities.User;
 import com.example.fileuploader.repository.UserInfoRepository;
 import com.example.fileuploader.service.AuthenticationService;
+import com.example.fileuploader.util.JwtUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
@@ -12,9 +15,12 @@ import java.util.Objects;
 public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final UserInfoRepository userInfoRepository;
+    private final JwtUtil jwtUtil;
 
-    public AuthenticationServiceImpl(UserInfoRepository userInfoRepository) {
+    @Autowired
+    public AuthenticationServiceImpl(UserInfoRepository userInfoRepository, JwtUtil jwtUtil) {
         this.userInfoRepository = userInfoRepository;
+        this.jwtUtil = jwtUtil;
     }
 
     @Override
@@ -31,5 +37,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .build();
 
         return userInfoRepository.save(user);
+    }
+
+    @Override
+    public String login(LoginRequest loginRequest) throws Exception {
+        User user = userInfoRepository.findByEmail(loginRequest.getEmail());
+
+        if (Objects.isNull(user)) {
+            throw new Exception("User Not Exist!!");
+        }
+
+        return jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
     }
 }
