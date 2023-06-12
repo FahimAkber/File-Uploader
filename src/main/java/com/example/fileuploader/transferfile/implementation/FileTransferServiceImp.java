@@ -16,9 +16,6 @@ import com.example.fileuploader.model.Configuration;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-
-import java.io.File;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -46,9 +43,9 @@ public class FileTransferServiceImp implements FileTransferService {
             channelSftp = Util.createChannelSftp(session);
 
             Vector<ChannelSftp.LsEntry> childFolders = channelSftp.ls(sourcePath+"/*");
-            LocalDateTime startTime = LocalDateTime.now();
 
-            Partition<ChannelSftp.LsEntry> partition = Partition.getPartitionInstance(childFolders, 500);
+            Partition<ChannelSftp.LsEntry> partition = Partition.getPartitionInstance(childFolders, 1200);
+            LoggerFactory.getLogger(LOGGER_NAME).info("Total folder: {} and partition size: {}", childFolders.size(), partition.size());
             List<FileThread> tasks = new ArrayList<>();
             int i = 1;
 
@@ -58,13 +55,7 @@ public class FileTransferServiceImp implements FileTransferService {
 
             PoolInstance poolInstance = Util.poolInstance;
             poolInstance.setTasks(tasks);
-            String s = poolInstance.implementSingleInstance();
-            if(s != null){
-                LocalDateTime endTime = LocalDateTime.now();
-                Duration duration = Duration.between(startTime, endTime);
-                LoggerFactory.getLogger(LOGGER_NAME).info("job started at: {}, end at: {}, completed at: {}", startTime.toString(), endTime.toString(), duration.getSeconds());
-
-            }
+            poolInstance.implementSingleInstance();
 
         } catch (FileUploaderException exception){
             throw exception;

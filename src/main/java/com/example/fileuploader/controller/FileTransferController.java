@@ -69,6 +69,12 @@ public class FileTransferController {
         return ResponseEntity.ok(quartzJobInfoService.deleteJobInfo(jobKey));
     }
 
+    @GetMapping("/get-job-by-server")
+    public ResponseEntity<Object> getJobByServer(@RequestParam("server") String server, @RequestParam("page") Integer page, @RequestParam("size") Integer size){
+        return ResponseEntity.ok(quartzJobInfoService.getJobInfoByServer(server, page, size));
+    }
+
+
     @GetMapping("get-job/{jobKey}")
     public ResponseEntity<Object> getJob(@PathVariable String jobKey) {
         try {

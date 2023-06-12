@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true" scanPeriod="60 seconds">
 
-<!--    <property name="LOGS" value="/home/appadmin/dotmed_project/logs"/>-->
+<!--    <property name="LOGS" value="/data/app/dotmed_project/logs"/>-->
     <property name="LOGS" value="./logs"/>
 
     <appender name="Console"

@@ -196,13 +196,17 @@ public class QuartzSchedulerServiceImpl implements QuartzSchedulerService {
     }
 
     @Override
-    public void deleteJob(JobKey jobKey) {
+    public void deleteJob(JobKey jobKey) throws Exception {
+        TriggerKey triggerKey = new TriggerKey("trigger key: " + jobKey.toString());
         try {
-            if(scheduler.checkExists(jobKey)){
+            if(scheduler.checkExists(triggerKey)){
+                throw new Exception("Job is running. can't delete right now.");
+            }else {
+                scheduler.unscheduleJob(triggerKey);
                 scheduler.deleteJob(jobKey);
             }
-        } catch (Exception e) {
-            throw new FileUploaderException(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            throw exception;
         }
     }
 }

@@ -22,5 +22,7 @@ public class Configuration {
     private String secureFileLocation;
     @Value("${local.file.location}")
     private String localFileLocation;
+    @Value("${custom.threadpool.size}")
+    private String customThreadPoolSize;
 
 }

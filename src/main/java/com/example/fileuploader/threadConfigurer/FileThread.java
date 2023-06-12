@@ -11,10 +11,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
 import java.io.File;
+import java.time.Duration;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.Callable;
 
-public class FileThread implements Callable<String> {
+public class FileThread implements Runnable {
     private String threadId;
     private List<ChannelSftp.LsEntry> folders;
     private String jobKey;
@@ -41,10 +43,11 @@ public class FileThread implements Callable<String> {
     }
 
     @Override
-    public String call() {
+    public void run() {
         Session session = null;
         ChannelSftp channelSftp = null;
         try {
+            LocalDate startAt = LocalDate.now();
             session = createSession(sourceServer.getUser(), sourceServer.getHost(), sourceServer.getPort(), sourceServer.getSecureFileName(), sourceServer.getPassword());
             channelSftp = createChannelSftp(session);
             for (ChannelSftp.LsEntry folder : folders){
@@ -59,12 +62,11 @@ public class FileThread implements Callable<String> {
                     //TODO: If latest file not found.
                 }
             }
-
-            return threadId + "completed at : " + Calendar.getInstance().getTime();
-        } catch (SftpException e) {
-            throw new RuntimeException(e);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            LocalDate endAt = LocalDate.now();
+            Duration duration = Duration.between(startAt, endAt);
+            LoggerFactory.getLogger(LOGGER_NAME).info("{} start at: {}, end at: {}, total duration: {}", threadId, startAt.toString(), endAt.toString(), duration.getSeconds());
+        }  catch (Exception e) {
+            LoggerFactory.getLogger(LOGGER_NAME + "main thread method - error").error(e.getMessage());
         } finally {
             if(channelSftp != null){
                 channelSftp.disconnect();
@@ -81,7 +83,7 @@ public class FileThread implements Callable<String> {
             channelSftp.setBulkRequests(30);
             channelSftp.connect();
         } catch (JSchException | NullPointerException e) {
-            throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            LoggerFactory.getLogger(LOGGER_NAME + "create channel sftp - error").error(e.getMessage());
         }
         return channelSftp;
     }
@@ -111,7 +113,7 @@ public class FileThread implements Callable<String> {
                 LoggerFactory.getLogger(LOGGER_NAME).info("Already Exist in local - File: {}", fileName);
             }
         } catch (Exception e) {
-            LoggerFactory.getLogger(LOGGER_NAME).error(e.getMessage());
+            LoggerFactory.getLogger(LOGGER_NAME + "upload method - error").error(e.getMessage());
         }
     }
 
@@ -134,12 +136,8 @@ public class FileThread implements Callable<String> {
             session.setConfig("sftp.max_packet", "131072"); // Set maximum packet size to 131072 bytes (128 KB)
 
             session.connect();
-        } catch (JSchException e) {
-            throw new FileUploaderException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        } catch (NullPointerException e){
-            throw new FileUploaderException(e.getMessage(), HttpStatus.NOT_FOUND);
         } catch(Exception exception){
-            throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
+            LoggerFactory.getLogger(LOGGER_NAME + "create session method - error").error(exception.getMessage());
         }
 
         return session;

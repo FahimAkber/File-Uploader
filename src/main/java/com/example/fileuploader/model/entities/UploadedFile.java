@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.Date;
 
 @Entity
-@Table(name = "uploaded_file")
+@Table(name = "uploaded_files")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

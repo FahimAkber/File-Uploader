@@ -2,6 +2,7 @@ package com.example.fileuploader.service.implementation;
 
 import com.example.fileuploader.model.Configuration;
 import com.example.fileuploader.model.entities.QuartzJobInfo;
+import com.example.fileuploader.model.entities.Server;
 import com.example.fileuploader.model.response.JobInfoResponse;
 import com.example.fileuploader.model.response.MessageResponse;
 import com.example.fileuploader.quartzscheduler.QuartzSchedulerService;
@@ -13,6 +14,7 @@ import com.example.fileuploader.service.ServerService;
 import com.example.fileuploader.util.Util;
 import org.modelmapper.ModelMapper;
 import org.quartz.JobKey;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -99,11 +101,9 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
     }
 
     @Override
-    public List<QuartzJobInfo> getQuartzJobInfos(Integer pageNo, Integer pageSize) {
+    public Page<QuartzJobInfo> getQuartzJobInfos(Integer pageNo, Integer pageSize) {
         return quartzJobInfoRepository
-                .findAll(Util.getPageableObject(pageNo, pageSize))
-                .stream()
-                .collect(Collectors.toList());
+                .findAll(Util.getPageableObject(pageNo, pageSize));
     }
 
     @Override
@@ -117,6 +117,11 @@ public class QuartzJobInfoServiceImpl implements QuartzJobInfoService {
         }catch(Exception exception){
             throw new FileUploaderException(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    @Override
+    public Page<QuartzJobInfo> getJobInfoByServer(String host, Integer page, Integer size) {
+        return quartzJobInfoRepository.findAllBySourceServerHostOrDestinationServerHost(host, host, Util.getPageableObject(page, size));
     }
 
 }
