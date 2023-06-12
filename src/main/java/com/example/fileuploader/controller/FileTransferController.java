@@ -3,34 +3,23 @@ package com.example.fileuploader.controller;
 import com.example.fileuploader.model.JobInfo;
 import com.example.fileuploader.model.JobRequest;
 import com.example.fileuploader.model.SchedulerRequest;
-import com.example.fileuploader.model.ServerInfo;
 import com.example.fileuploader.model.entities.Server;
 import com.example.fileuploader.service.QuartzJobInfoService;
 import com.example.fileuploader.exceptions.FileUploaderException;
 import com.example.fileuploader.quartzscheduler.QuartzSchedulerService;
 import com.example.fileuploader.service.ServerService;
-import com.example.fileuploader.transferfile.FileTransferService;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import org.apache.tomcat.jni.Local;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.io.File;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/file-transfer")
@@ -73,7 +62,6 @@ public class FileTransferController {
     public ResponseEntity<Object> getJobByServer(@RequestParam("server") String server, @RequestParam("page") Integer page, @RequestParam("size") Integer size){
         return ResponseEntity.ok(quartzJobInfoService.getJobInfoByServer(server, page, size));
     }
-
 
     @GetMapping("get-job/{jobKey}")
     public ResponseEntity<Object> getJob(@PathVariable String jobKey) {

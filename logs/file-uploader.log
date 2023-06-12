@@ -276,3 +276,6 @@ Caused by: java.lang.IllegalStateException: Method public abstract org.springfra
 2023-06-12 17:31:10,127 INFO org.apache.juli.logging.DirectJDKLog [http-nio-8084-exec-1]  Initializing Spring DispatcherServlet 'dispatcherServlet'
 2023-06-12 17:31:10,127 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-8084-exec-1]  Initializing Servlet 'dispatcherServlet'
 2023-06-12 17:31:10,128 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-8084-exec-1]  Completed initialization in 1 ms
+2023-06-12 18:04:53,151 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-1 housekeeper]  HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=9m17s970ms579µs300ns).
+2023-06-12 18:23:32,063 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-1 housekeeper]  HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1m8s687ms702µs400ns).
+2023-06-12 20:14:02,934 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-1 housekeeper]  HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1h41m50s81ms375µs400ns).
