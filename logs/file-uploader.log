@@ -279,3 +279,49 @@ Caused by: java.lang.IllegalStateException: Method public abstract org.springfra
 2023-06-12 18:04:53,151 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-1 housekeeper]  HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=9m17s970ms579µs300ns).
 2023-06-12 18:23:32,063 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-1 housekeeper]  HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1m8s687ms702µs400ns).
 2023-06-12 20:14:02,934 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-1 housekeeper]  HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1h41m50s81ms375µs400ns).
+2023-06-13 11:24:12,272 INFO org.springframework.boot.StartupInfoLogger [main]  Starting FileUploaderApplication using Java 1.8.0_202 on R50000273B with PID 4576 (D:\RedDot Projects\File Uploader\target\classes started by fahim.akber in D:\RedDot Projects\File Uploader)
+2023-06-13 11:24:12,276 DEBUG org.springframework.boot.StartupInfoLogger [main]  Running with Spring Boot v2.6.4, Spring v5.3.16
+2023-06-13 11:24:12,276 INFO org.springframework.boot.SpringApplication [main]  The following 1 profile is active: "dev"
+2023-06-13 11:24:13,072 INFO org.springframework.data.repository.config.RepositoryConfigurationDelegate [main]  Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2023-06-13 11:24:13,166 INFO org.springframework.data.repository.config.RepositoryConfigurationDelegate [main]  Finished Spring Data repository scanning in 84 ms. Found 4 JPA repository interfaces.
+2023-06-13 11:24:13,744 INFO org.springframework.boot.web.embedded.tomcat.TomcatWebServer [main]  Tomcat initialized with port(s): 8084 (http)
+2023-06-13 11:24:13,754 INFO org.apache.juli.logging.DirectJDKLog [main]  Initializing ProtocolHandler ["http-nio-8084"]
+2023-06-13 11:24:13,756 INFO org.apache.juli.logging.DirectJDKLog [main]  Starting service [Tomcat]
+2023-06-13 11:24:13,757 INFO org.apache.juli.logging.DirectJDKLog [main]  Starting Servlet engine: [Apache Tomcat/9.0.58]
+2023-06-13 11:24:13,912 INFO org.apache.juli.logging.DirectJDKLog [main]  Initializing Spring embedded WebApplicationContext
+2023-06-13 11:24:13,912 INFO org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext [main]  Root WebApplicationContext: initialization completed in 1584 ms
+2023-06-13 11:24:14,020 INFO com.zaxxer.hikari.HikariDataSource [main]  HikariPool-1 - Starting...
+2023-06-13 11:24:14,637 INFO com.zaxxer.hikari.HikariDataSource [main]  HikariPool-1 - Start completed.
+2023-06-13 11:24:14,758 INFO org.hibernate.jpa.internal.util.LogHelper [main]  HHH000204: Processing PersistenceUnitInfo [name: default]
+2023-06-13 11:24:14,847 INFO org.hibernate.Version [main]  HHH000412: Hibernate ORM core version 5.6.5.Final
+2023-06-13 11:24:15,087 INFO org.hibernate.annotations.common.reflection.java.JavaReflectionManager [main]  HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
+2023-06-13 11:24:15,276 INFO org.hibernate.dialect.Dialect [main]  HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
+2023-06-13 11:24:16,162 INFO org.hibernate.engine.transaction.jta.platform.internal.JtaPlatformInitiator [main]  HHH000490: Using JtaPlatform implementation: [org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform]
+2023-06-13 11:24:16,173 INFO org.springframework.orm.jpa.AbstractEntityManagerFactoryBean [main]  Initialized JPA EntityManagerFactory for persistence unit 'default'
+2023-06-13 11:24:16,682 INFO org.quartz.impl.StdSchedulerFactory [main]  Using default implementation for ThreadExecutor
+2023-06-13 11:24:16,700 INFO org.quartz.core.SchedulerSignalerImpl [main]  Initialized Scheduler Signaller of type: class org.quartz.core.SchedulerSignalerImpl
+2023-06-13 11:24:16,700 INFO org.quartz.core.QuartzScheduler [main]  Quartz Scheduler v.2.3.2 created.
+2023-06-13 11:24:16,704 INFO org.quartz.impl.jdbcjobstore.JobStoreSupport [main]  Using db table-based data access locking (synchronization).
+2023-06-13 11:24:16,706 INFO org.quartz.impl.jdbcjobstore.JobStoreCMT [main]  JobStoreCMT initialized.
+2023-06-13 11:24:16,707 INFO org.quartz.core.QuartzScheduler [main]  Scheduler meta-data: Quartz Scheduler (v2.3.2) 'quartzScheduler' with instanceId 'NON_CLUSTERED'
+  Scheduler class: 'org.quartz.core.QuartzScheduler' - running locally.
+  NOT STARTED.
+  Currently in standby mode.
+  Number of jobs executed: 0
+  Using thread pool 'org.quartz.simpl.SimpleThreadPool' - with 20 threads.
+  Using job-store 'org.springframework.scheduling.quartz.LocalDataSourceJobStore' - which supports persistence. and is clustered.
+
+2023-06-13 11:24:16,708 INFO org.quartz.impl.StdSchedulerFactory [main]  Quartz scheduler 'quartzScheduler' initialized from an externally provided properties instance.
+2023-06-13 11:24:16,708 INFO org.quartz.impl.StdSchedulerFactory [main]  Quartz scheduler version: 2.3.2
+2023-06-13 11:24:16,709 INFO org.quartz.core.QuartzScheduler [main]  JobFactory set to: org.springframework.scheduling.quartz.SpringBeanJobFactory@3921e96f
+2023-06-13 11:24:16,910 WARN org.springframework.boot.autoconfigure.orm.jpa.JpaBaseConfiguration$JpaWebConfiguration [main]  spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2023-06-13 11:24:17,529 INFO org.apache.juli.logging.DirectJDKLog [main]  Starting ProtocolHandler ["http-nio-8084"]
+2023-06-13 11:24:17,551 INFO org.springframework.boot.web.embedded.tomcat.TomcatWebServer [main]  Tomcat started on port(s): 8084 (http) with context path ''
+2023-06-13 11:24:17,553 INFO org.springframework.scheduling.quartz.SchedulerFactoryBean [main]  Starting Quartz Scheduler now
+2023-06-13 11:24:17,569 INFO org.quartz.impl.jdbcjobstore.JobStoreSupport [main]  ClusterManager: detected 1 failed or restarted instances.
+2023-06-13 11:24:17,569 INFO org.quartz.impl.jdbcjobstore.JobStoreSupport [main]  ClusterManager: Scanning for instance "NON_CLUSTERED"'s failed in-progress jobs.
+2023-06-13 11:24:17,579 INFO org.quartz.core.QuartzScheduler [main]  Scheduler quartzScheduler_$_NON_CLUSTERED started.
+2023-06-13 11:24:17,591 INFO org.springframework.boot.StartupInfoLogger [main]  Started FileUploaderApplication in 5.884 seconds (JVM running for 9.834)
+2023-06-13 11:24:44,312 INFO org.apache.juli.logging.DirectJDKLog [http-nio-8084-exec-1]  Initializing Spring DispatcherServlet 'dispatcherServlet'
+2023-06-13 11:24:44,312 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-8084-exec-1]  Initializing Servlet 'dispatcherServlet'
+2023-06-13 11:24:44,314 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-8084-exec-1]  Completed initialization in 2 ms

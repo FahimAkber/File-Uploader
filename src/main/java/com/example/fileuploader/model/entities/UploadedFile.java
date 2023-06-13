@@ -44,22 +44,6 @@ public class UploadedFile {
 
     public UploadedFile(String fileName, String sourceHost, String sourcePath, Long sourceFileSize,
                         Date localUploadedDate, String localPath, Long localUploadedFileSize,
-                        String destinationHost, String destinationPath, String status){
-        this.fileName = fileName;
-        this.sourceHost = sourceHost;
-        this.sourcePath = sourcePath;
-        this.sourceFileSize = sourceFileSize;
-        this.localUploadedDate = localUploadedDate;
-        this.localPath = localPath;
-        this.localUploadedFileSize = localUploadedFileSize;
-        this.destinationHost = destinationHost;
-        this.destinationPath = destinationPath;
-        this.status = status;
-    }
-
-
-    public UploadedFile(String fileName, String sourceHost, String sourcePath, Long sourceFileSize,
-                        Date localUploadedDate, String localPath, Long localUploadedFileSize,
                         String destinationHost, String destinationPath, Date destinationUploadedDate, String status){
         this.fileName = fileName;
         this.sourceHost = sourceHost;
@@ -100,4 +84,20 @@ public class UploadedFile {
         this.destinationPath = destinationPath;
         this.status = status;
     }
+
+    public UploadedFile(String fileName, String sourceHost, String sourcePath, Long sourceFileSize,
+                        Date localUploadedDate, String localPath, Long localUploadedFileSize,
+                        String destinationHost, String destinationPath, String status){
+        this.fileName = fileName;
+        this.sourceHost = sourceHost;
+        this.sourcePath = sourcePath;
+        this.sourceFileSize = sourceFileSize;
+        this.localUploadedDate = localUploadedDate;
+        this.localPath = localPath;
+        this.localUploadedFileSize = localUploadedFileSize;
+        this.destinationHost = destinationHost;
+        this.destinationPath = destinationPath;
+        this.status = status;
+    }
+
 }

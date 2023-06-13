@@ -35,8 +35,14 @@ public class FileTransferServiceImp implements FileTransferService {
     public void getFiles(QuartzJobInfo jobInfo){
         Session session = null;
         ChannelSftp channelSftp = null;
-        Server sourceServer = jobInfo.getSourceServer(), destinationServer = jobInfo.getDestinationServer();
-        String sourcePath = jobInfo.getSourcePath(), localBasePath = configuration.getLocalFileLocation().concat("/").concat(sourceServer.getHost()).concat("/").concat(jobInfo.getSourcePath()).concat("/");
+
+        Server sourceServer = jobInfo.getSourceServer(),
+               destinationServer = jobInfo.getDestinationServer();
+
+        String sourcePath = jobInfo.getSourcePath(),
+               localBasePath = configuration.getLocalFileLocation().concat("/")
+                                            .concat(sourceServer.getHost()).concat("/")
+                                            .concat(jobInfo.getSourcePath()).concat("/");
 
         try {
             session = Util.createSession(sourceServer.getUser(), sourceServer.getHost(), sourceServer.getPort(), sourceServer.getSecureFileName(), sourceServer.getPassword());
