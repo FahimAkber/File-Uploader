@@ -2,13 +2,11 @@ package com.example.fileuploader.transferfile.implementation;
 
 import com.example.fileuploader.configuration.Partition;
 import com.example.fileuploader.exceptions.FileUploaderException;
-import com.example.fileuploader.model.Status;
+import com.example.fileuploader.gateway.CallApi;
 import com.example.fileuploader.model.entities.QuartzJobInfo;
 import com.example.fileuploader.model.entities.Server;
-import com.example.fileuploader.model.entities.UploadedFile;
 import com.example.fileuploader.service.UploadedFileService;
-import com.example.fileuploader.threadConfigurer.FileThread;
-import com.example.fileuploader.threadConfigurer.PoolInstance;
+import com.example.fileuploader.threadConfigurer.ThreadInfo;
 import com.example.fileuploader.transferfile.FileTransferService;
 import com.example.fileuploader.util.Util;
 import com.jcraft.jsch.*;
@@ -16,8 +14,9 @@ import com.example.fileuploader.model.Configuration;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import java.time.LocalDateTime;
+
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class FileTransferServiceImp implements FileTransferService {
@@ -25,11 +24,14 @@ public class FileTransferServiceImp implements FileTransferService {
     private final UploadedFileService fileService;
     private Configuration configuration;
     private Queue<String> jobQueue;
+
+    private final CallApi callApi;
     private static final String LOGGER_NAME = "File Uploader";
 
-    public FileTransferServiceImp(UploadedFileService fileService, Configuration configuration) {
+    public FileTransferServiceImp(UploadedFileService fileService, Configuration configuration, CallApi callApi) {
         this.fileService = fileService;
         this.configuration = configuration;
+        this.callApi = callApi;
         jobQueue = new LinkedList<>();
     }
     public void getFiles(QuartzJobInfo jobInfo){
@@ -39,29 +41,43 @@ public class FileTransferServiceImp implements FileTransferService {
         Server sourceServer = jobInfo.getSourceServer(),
                destinationServer = jobInfo.getDestinationServer();
 
+        String sourceHost = sourceServer.getHost(),
+               sourceUser = sourceServer.getUser(),
+               sourceFile = sourceServer.getSecureFileName(),
+               sourcePassword = sourceServer.getPassword();
+
+        int sourcePort = sourceServer.getPort();
+
         String sourcePath = jobInfo.getSourcePath(),
                localBasePath = configuration.getLocalFileLocation().concat("/")
                                             .concat(sourceServer.getHost()).concat("/")
                                             .concat(jobInfo.getSourcePath()).concat("/");
 
         try {
-            session = Util.createSession(sourceServer.getUser(), sourceServer.getHost(), sourceServer.getPort(), sourceServer.getSecureFileName(), sourceServer.getPassword());
+            session = Util.createSession(sourceUser, sourceHost, sourcePort, sourceFile, sourcePassword);
             channelSftp = Util.createChannelSftp(session);
 
-            Vector<ChannelSftp.LsEntry> childFolders = channelSftp.ls(sourcePath+"/*");
+            Vector<ChannelSftp.LsEntry> entries = channelSftp.ls(sourcePath+"/*");
+            List<String> childFolders = entries.stream().map(ChannelSftp.LsEntry::getFilename).collect(Collectors.toList());
 
-            Partition<ChannelSftp.LsEntry> partition = Partition.getPartitionInstance(childFolders, 1200);
+            Partition<String> partition = Partition.getPartitionInstance(childFolders, 1000);
             LoggerFactory.getLogger(LOGGER_NAME).info("Total folder: {} and partition size: {}", childFolders.size(), partition.size());
-            List<FileThread> tasks = new ArrayList<>();
-            int i = 1;
+            List<ThreadInfo> tasks1 = new ArrayList<>();
+            List<ThreadInfo> tasks2 = new ArrayList<>();
 
-            for(List<ChannelSftp.LsEntry> chunkFolder : partition){
-                tasks.add(new FileThread("Thread-"+ i++,chunkFolder, jobInfo.getJobKey(), sourceServer, sourcePath, localBasePath, destinationServer.getHost(), jobInfo.getDestinationPath(), jobInfo.getFileExtension(), fileService));
+
+            for(int i = 0; i < partition.size(); i++){
+                ThreadInfo threadInfo = new ThreadInfo("Thread-" + (i+1), partition.get(i), sourceHost, sourcePort, sourceUser, sourcePassword, sourceFile, sourcePath, localBasePath, destinationServer.getHost(), jobInfo.getDestinationPath(), jobInfo.getFileExtension());
+                if(i%2 == 0){
+                    tasks2.add(threadInfo);
+                }else {
+                    tasks1.add(threadInfo);
+                }
             }
+            callApi.collectFiles(tasks1, "http://localhost:8088/file/collect");
+            callApi.collectFiles(tasks2, "http://localhost:8088/file/collect");
 
-            PoolInstance poolInstance = Util.poolInstance;
-            poolInstance.setTasks(tasks);
-            poolInstance.implementSingleInstance();
+            //pass to object
 
         } catch (FileUploaderException exception){
             throw exception;
